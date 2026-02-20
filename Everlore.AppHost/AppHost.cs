@@ -1,6 +1,7 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
-var postgres = builder.AddPostgres("postgres");
+var postgres = builder.AddPostgres("postgres")
+    .WithDataVolume();
 var everloredb = postgres.AddDatabase("everloredb");
 var everloretenantdb = postgres.AddDatabase("everloretenantdb");
 
