@@ -16,7 +16,8 @@ public class MigrationWorker(
         var catalogDb = scope.ServiceProvider.GetRequiredService<CatalogDbContext>();
         await catalogDb.Database.MigrateAsync(cancellationToken);
 
-        await SeedDevTenantAsync(catalogDb, cancellationToken);
+        var devTenant = await SeedDevTenantAsync(catalogDb, cancellationToken);
+        await SeedConnectorConfigAsync(catalogDb, devTenant, cancellationToken);
 
         var tenantDb = scope.ServiceProvider.GetRequiredService<EverloreDbContext>();
         await tenantDb.Database.MigrateAsync(cancellationToken);
@@ -24,7 +25,7 @@ public class MigrationWorker(
         hostApplicationLifetime.StopApplication();
     }
 
-    private async Task SeedDevTenantAsync(CatalogDbContext catalogDb, CancellationToken cancellationToken)
+    private async Task<Tenant> SeedDevTenantAsync(CatalogDbContext catalogDb, CancellationToken cancellationToken)
     {
         var tenantConnectionString = configuration.GetConnectionString("everloretenantdb")!;
 
@@ -33,18 +34,37 @@ public class MigrationWorker(
 
         if (devTenant is null)
         {
-            catalogDb.Tenants.Add(new Tenant
+            devTenant = new Tenant
             {
                 Name = "Development",
                 Identifier = "dev",
                 ConnectionString = tenantConnectionString,
                 IsActive = true
-            });
+            };
+            catalogDb.Tenants.Add(devTenant);
             await catalogDb.SaveChangesAsync(cancellationToken);
         }
         else if (devTenant.ConnectionString != tenantConnectionString)
         {
             devTenant.ConnectionString = tenantConnectionString;
+            await catalogDb.SaveChangesAsync(cancellationToken);
+        }
+
+        return devTenant;
+    }
+
+    private static async Task SeedConnectorConfigAsync(CatalogDbContext catalogDb, Tenant devTenant, CancellationToken cancellationToken)
+    {
+        if (!await catalogDb.ConnectorConfigurations.AnyAsync(
+                c => c.TenantId == devTenant.Id && c.ConnectorType == "seed", cancellationToken))
+        {
+            catalogDb.ConnectorConfigurations.Add(new ConnectorConfiguration
+            {
+                TenantId = devTenant.Id,
+                ConnectorType = "seed",
+                IsEnabled = true,
+                Settings = null
+            });
             await catalogDb.SaveChangesAsync(cancellationToken);
         }
     }

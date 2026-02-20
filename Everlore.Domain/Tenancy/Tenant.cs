@@ -8,4 +8,6 @@ public class Tenant : BaseEntity
     public string Identifier { get; set; } = string.Empty;
     public string ConnectionString { get; set; } = string.Empty;
     public bool IsActive { get; set; } = true;
+
+    public ICollection<ConnectorConfiguration> ConnectorConfigurations { get; set; } = [];
 }

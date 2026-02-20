@@ -39,8 +39,10 @@ public class EverloreDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Ignore<Tenant>();
-        modelBuilder.ApplyConfigurationsFromAssembly(typeof(EverloreDbContext).Assembly);
+        modelBuilder.ApplyConfigurationsFromAssembly(
+            typeof(EverloreDbContext).Assembly,
+            type => type != typeof(Configurations.TenantConfiguration)
+                 && type != typeof(Configurations.ConnectorConfigurationConfiguration));
     }
 
     public override int SaveChanges()

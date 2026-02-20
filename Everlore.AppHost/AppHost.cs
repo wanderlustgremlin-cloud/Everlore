@@ -11,8 +11,13 @@ var migrations = builder.AddProject<Projects.Everlore_MigrationService>("migrati
     .WaitFor(everloredb)
     .WaitFor(everloretenantdb);
 
+var sync = builder.AddProject<Projects.Everlore_SyncService>("sync")
+    .WithReference(everloredb)
+    .WithReference(everloretenantdb)
+    .WaitForCompletion(migrations);
+
 builder.AddProject<Projects.Everlore_Api>("everlore-api")
     .WithReference(everloredb)
-    .WaitForCompletion(migrations);
+    .WaitForCompletion(sync);
 
 builder.Build().Run();

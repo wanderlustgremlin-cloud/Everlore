@@ -15,6 +15,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Everlore.Api\Everlore.Api.csproj" />
     <ProjectReference Include="..\Everlore.MigrationService\Everlore.MigrationService.csproj" />
+    <ProjectReference Include="..\Everlore.SyncService\Everlore.SyncService.csproj" />
   </ItemGroup>
 
 </Project>

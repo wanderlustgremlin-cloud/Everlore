@@ -9,10 +9,12 @@ public class CatalogDbContext : DbContext
     public CatalogDbContext(DbContextOptions<CatalogDbContext> options) : base(options) { }
 
     public DbSet<Tenant> Tenants => Set<Tenant>();
+    public DbSet<ConnectorConfiguration> ConnectorConfigurations => Set<ConnectorConfiguration>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfiguration(new Configurations.TenantConfiguration());
+        modelBuilder.ApplyConfiguration(new Configurations.ConnectorConfigurationConfiguration());
     }
 
     public override int SaveChanges()

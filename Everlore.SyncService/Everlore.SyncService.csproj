@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0">
+      <IncludeAssets>runtime; build; native; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Everlore.Infrastructure.Postgres\Everlore.Infrastructure.Postgres.csproj" />
+    <ProjectReference Include="..\Everlore.Connector.Seed\Everlore.Connector.Seed.csproj" />
+    <ProjectReference Include="..\Everlore.ServiceDefaults\Everlore.ServiceDefaults.csproj" />
+  </ItemGroup>
+
+</Project>
