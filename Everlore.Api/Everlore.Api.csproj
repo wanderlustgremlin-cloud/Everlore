@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Everlore.ServiceDefaults\Everlore.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\Everlore.Infrastructure\Everlore.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
