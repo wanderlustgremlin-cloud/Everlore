@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="Everlore.Api/Everlore.Api.csproj" />
+  <Project Path="Everlore.AppHost/Everlore.AppHost.csproj" />
+  <Project Path="Everlore.Domain/Everlore.Domain.csproj" />
+  <Project Path="Everlore.ServiceDefaults/Everlore.ServiceDefaults.csproj" />
+</Solution>

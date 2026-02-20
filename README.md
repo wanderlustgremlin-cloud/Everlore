@@ -1,2 +1,2 @@
 # Everlore
-A Bi Tool
+A BI reporting system
