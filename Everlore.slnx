@@ -1,9 +1,17 @@
 <Solution>
-  <Project Path="Everlore.Api/Everlore.Api.csproj" />
-  <Project Path="Everlore.AppHost/Everlore.AppHost.csproj" />
-  <Project Path="Everlore.Domain/Everlore.Domain.csproj" />
-  <Project Path="Everlore.Infrastructure/Everlore.Infrastructure.csproj" />
-  <Project Path="Everlore.Infrastructure.Postgres/Everlore.Infrastructure.Postgres.csproj" />
-  <Project Path="Everlore.MigrationService/Everlore.MigrationService.csproj" />
-  <Project Path="Everlore.ServiceDefaults/Everlore.ServiceDefaults.csproj" />
+  <Folder Name="/Api/">
+    <Project Path="Everlore.Api/Everlore.Api.csproj" />
+  </Folder>
+  <Folder Name="/Aspire/">
+    <Project Path="Everlore.AppHost/Everlore.AppHost.csproj" />
+    <Project Path="Everlore.ServiceDefaults/Everlore.ServiceDefaults.csproj" />
+  </Folder>
+  <Folder Name="/Core/">
+    <Project Path="Everlore.Domain/Everlore.Domain.csproj" />
+  </Folder>
+  <Folder Name="/Infrastructure/">
+    <Project Path="Everlore.Infrastructure.Postgres/Everlore.Infrastructure.Postgres.csproj" />
+    <Project Path="Everlore.Infrastructure/Everlore.Infrastructure.csproj" />
+    <Project Path="Everlore.MigrationService/Everlore.MigrationService.csproj" />
+  </Folder>
 </Solution>
