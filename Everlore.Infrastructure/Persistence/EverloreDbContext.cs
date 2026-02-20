@@ -4,6 +4,7 @@ using Everlore.Domain.Common;
 using Everlore.Domain.Inventory;
 using Everlore.Domain.Sales;
 using Everlore.Domain.Shipping;
+using Everlore.Domain.Tenancy;
 using Microsoft.EntityFrameworkCore;
 
 namespace Everlore.Infrastructure.Persistence;
@@ -38,6 +39,7 @@ public class EverloreDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Ignore<Tenant>();
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(EverloreDbContext).Assembly);
     }
 

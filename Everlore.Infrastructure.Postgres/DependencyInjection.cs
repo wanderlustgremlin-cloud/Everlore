@@ -13,17 +13,16 @@ public static class DependencyInjection
         services.AddInfrastructureCore();
 
         services.AddDbContext<CatalogDbContext>(options =>
-            options.UseNpgsql(catalogConnectionString));
+            options.UseNpgsql(catalogConnectionString, o =>
+                o.MigrationsAssembly("Everlore.Infrastructure.Postgres")));
 
         services.AddDbContext<EverloreDbContext>((serviceProvider, options) =>
         {
             var resolver = serviceProvider.GetRequiredService<TenantConnectionResolver>();
             var connectionString = resolver.GetConnectionStringAsync().GetAwaiter().GetResult();
 
-            if (!string.IsNullOrWhiteSpace(connectionString))
-            {
-                options.UseNpgsql(connectionString);
-            }
+            options.UseNpgsql(connectionString ?? catalogConnectionString, o =>
+                o.MigrationsAssembly("Everlore.Infrastructure.Postgres"));
         });
 
         return services;

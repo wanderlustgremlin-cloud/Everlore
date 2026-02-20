@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk.Worker">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -11,11 +11,11 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Everlore.Infrastructure\Everlore.Infrastructure.csproj" />
+    <ProjectReference Include="..\Everlore.ServiceDefaults\Everlore.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\Everlore.Infrastructure.Postgres\Everlore.Infrastructure.Postgres.csproj" />
   </ItemGroup>
 
 </Project>
