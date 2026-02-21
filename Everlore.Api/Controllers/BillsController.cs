@@ -1,10 +1,12 @@
 using Everlore.Api.Models;
 using Everlore.Domain.AccountsPayable;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Everlore.Api.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/[controller]")]
 public class BillsController(IBillRepository repository) : ControllerBase
 {

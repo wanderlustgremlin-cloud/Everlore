@@ -1,5 +1,7 @@
+using Everlore.Domain.Tenancy;
 using Everlore.Infrastructure.Persistence;
 using Everlore.MigrationService;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 var builder = Host.CreateApplicationBuilder(args);
@@ -21,6 +23,10 @@ builder.Services.AddDbContext<CatalogDbContext>(options =>
 builder.Services.AddDbContext<EverloreDbContext>(options =>
     options.UseNpgsql(tenantConnectionString, o =>
         o.MigrationsAssembly("Everlore.Infrastructure.Postgres")));
+
+builder.Services.AddIdentityCore<ApplicationUser>()
+    .AddRoles<IdentityRole<Guid>>()
+    .AddEntityFrameworkStores<CatalogDbContext>();
 
 builder.Services.AddHostedService<MigrationWorker>();
 

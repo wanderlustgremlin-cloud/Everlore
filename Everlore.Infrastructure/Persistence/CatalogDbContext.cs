@@ -1,20 +1,26 @@
 using Everlore.Domain.Common;
 using Everlore.Domain.Tenancy;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace Everlore.Infrastructure.Persistence;
 
-public class CatalogDbContext : DbContext
+public class CatalogDbContext : IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>
 {
     public CatalogDbContext(DbContextOptions<CatalogDbContext> options) : base(options) { }
 
     public DbSet<Tenant> Tenants => Set<Tenant>();
     public DbSet<ConnectorConfiguration> ConnectorConfigurations => Set<ConnectorConfiguration>();
+    public DbSet<TenantUser> TenantUsers => Set<TenantUser>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        base.OnModelCreating(modelBuilder);
+
         modelBuilder.ApplyConfiguration(new Configurations.TenantConfiguration());
         modelBuilder.ApplyConfiguration(new Configurations.ConnectorConfigurationConfiguration());
+        modelBuilder.ApplyConfiguration(new Configurations.TenantUserConfiguration());
     }
 
     public override int SaveChanges()

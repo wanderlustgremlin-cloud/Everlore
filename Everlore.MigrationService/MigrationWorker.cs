@@ -1,5 +1,6 @@
 using Everlore.Domain.Tenancy;
 using Everlore.Infrastructure.Persistence;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace Everlore.MigrationService;
@@ -18,6 +19,9 @@ public class MigrationWorker(
 
         var devTenant = await SeedDevTenantAsync(catalogDb, cancellationToken);
         await SeedConnectorConfigAsync(catalogDb, devTenant, cancellationToken);
+
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        await SeedDevUserAsync(userManager, catalogDb, devTenant, cancellationToken);
 
         var tenantDb = scope.ServiceProvider.GetRequiredService<EverloreDbContext>();
         await tenantDb.Database.MigrateAsync(cancellationToken);
@@ -67,5 +71,65 @@ public class MigrationWorker(
             });
             await catalogDb.SaveChangesAsync(cancellationToken);
         }
+    }
+
+    private static async Task SeedDevUserAsync(
+        UserManager<ApplicationUser> userManager,
+        CatalogDbContext catalogDb,
+        Tenant devTenant,
+        CancellationToken cancellationToken)
+    {
+        const string devEmail = "admin@everlore.dev";
+        const string devPassword = "Admin123!";
+        const string devFullName = "Dev Admin";
+
+        var existingUser = await userManager.FindByEmailAsync(devEmail);
+        if (existingUser is not null)
+        {
+            // Ensure TenantUser link exists
+            var hasLink = await catalogDb.TenantUsers
+                .AnyAsync(tu => tu.UserId == existingUser.Id && tu.TenantId == devTenant.Id, cancellationToken);
+
+            if (!hasLink)
+            {
+                catalogDb.TenantUsers.Add(new TenantUser
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = existingUser.Id,
+                    TenantId = devTenant.Id,
+                    Role = TenantRole.Admin,
+                    CreatedAt = DateTime.UtcNow
+                });
+                await catalogDb.SaveChangesAsync(cancellationToken);
+            }
+
+            return;
+        }
+
+        var user = new ApplicationUser
+        {
+            UserName = devEmail,
+            Email = devEmail,
+            FullName = devFullName,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        var result = await userManager.CreateAsync(user, devPassword);
+        if (!result.Succeeded)
+        {
+            var errors = string.Join("; ", result.Errors.Select(e => e.Description));
+            throw new InvalidOperationException($"Failed to create dev user: {errors}");
+        }
+
+        catalogDb.TenantUsers.Add(new TenantUser
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            TenantId = devTenant.Id,
+            Role = TenantRole.Admin,
+            CreatedAt = DateTime.UtcNow
+        });
+        await catalogDb.SaveChangesAsync(cancellationToken);
     }
 }

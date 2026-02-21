@@ -1,5 +1,7 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
+var jwtSigningKey = builder.AddParameter("jwt-signing-key", secret: true);
+
 var postgres = builder.AddPostgres("postgres")
     .WithDataVolume();
 var everloredb = postgres.AddDatabase("everloredb");
@@ -18,6 +20,10 @@ var sync = builder.AddProject<Projects.Everlore_SyncService>("sync")
 
 builder.AddProject<Projects.Everlore_Api>("everlore-api")
     .WithReference(everloredb)
+    .WithEnvironment("Jwt__SigningKey", jwtSigningKey)
+    .WithEnvironment("Jwt__Issuer", "Everlore")
+    .WithEnvironment("Jwt__Audience", "Everlore")
+    .WithEnvironment("Jwt__ExpirationMinutes", "60")
     .WaitForCompletion(sync);
 
 builder.Build().Run();

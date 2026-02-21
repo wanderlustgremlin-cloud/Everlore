@@ -11,6 +11,7 @@ public static class DependencyInjection
     public static IServiceCollection AddPostgresInfrastructure(this IServiceCollection services, string catalogConnectionString)
     {
         services.AddInfrastructureCore();
+        services.AddAuthServices();
 
         services.AddDbContext<CatalogDbContext>(options =>
             options.UseNpgsql(catalogConnectionString, o =>

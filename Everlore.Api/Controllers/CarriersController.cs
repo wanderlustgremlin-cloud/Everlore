@@ -1,10 +1,12 @@
 using Everlore.Api.Models;
 using Everlore.Domain.Shipping;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Everlore.Api.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/[controller]")]
 public class CarriersController(ICarrierRepository repository) : ControllerBase
 {

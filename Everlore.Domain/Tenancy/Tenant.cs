@@ -10,4 +10,5 @@ public class Tenant : BaseEntity
     public bool IsActive { get; set; } = true;
 
     public ICollection<ConnectorConfiguration> ConnectorConfigurations { get; set; } = [];
+    public ICollection<TenantUser> TenantUsers { get; set; } = [];
 }

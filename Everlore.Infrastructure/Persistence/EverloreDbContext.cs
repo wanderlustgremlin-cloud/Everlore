@@ -42,7 +42,8 @@ public class EverloreDbContext : DbContext
         modelBuilder.ApplyConfigurationsFromAssembly(
             typeof(EverloreDbContext).Assembly,
             type => type != typeof(Configurations.TenantConfiguration)
-                 && type != typeof(Configurations.ConnectorConfigurationConfiguration));
+                 && type != typeof(Configurations.ConnectorConfigurationConfiguration)
+                 && type != typeof(Configurations.TenantUserConfiguration));
     }
 
     public override int SaveChanges()

@@ -20,9 +20,14 @@ public class TenantConnectionResolver
         if (string.IsNullOrWhiteSpace(identifier))
             return null;
 
-        var tenant = await _catalogDb.Tenants
-            .AsNoTracking()
-            .FirstOrDefaultAsync(t => t.Identifier == identifier && t.IsActive);
+        // JWT claims store tenant as GUID; header fallback uses string identifier
+        var tenant = Guid.TryParse(identifier, out var tenantId)
+            ? await _catalogDb.Tenants
+                .AsNoTracking()
+                .FirstOrDefaultAsync(t => t.Id == tenantId && t.IsActive)
+            : await _catalogDb.Tenants
+                .AsNoTracking()
+                .FirstOrDefaultAsync(t => t.Identifier == identifier && t.IsActive);
 
         return tenant?.ConnectionString;
     }
