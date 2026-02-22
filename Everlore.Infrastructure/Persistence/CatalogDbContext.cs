@@ -1,3 +1,4 @@
+using Everlore.Application.Common.Interfaces;
 using Everlore.Domain.Common;
 using Everlore.Domain.Tenancy;
 using Microsoft.AspNetCore.Identity;
@@ -6,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Everlore.Infrastructure.Persistence;
 
-public class CatalogDbContext : IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>
+public class CatalogDbContext : IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>, ICatalogDbContext
 {
     public CatalogDbContext(DbContextOptions<CatalogDbContext> options) : base(options) { }
 

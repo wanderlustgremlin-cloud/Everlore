@@ -10,6 +10,7 @@
     <Project Path="Everlore.Connector.Seed/Everlore.Connector.Seed.csproj" />
   </Folder>
   <Folder Name="/Core/">
+    <Project Path="Everlore.Application/Everlore.Application.csproj" />
     <Project Path="Everlore.Domain/Everlore.Domain.csproj" />
   </Folder>
   <Folder Name="/Infrastructure/">

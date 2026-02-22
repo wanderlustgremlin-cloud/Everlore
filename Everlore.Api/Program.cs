@@ -1,4 +1,7 @@
 using System.Text;
+using Everlore.Api.Filters;
+using Everlore.Api.Middleware;
+using Everlore.Application;
 using Everlore.Infrastructure.Auth;
 using Everlore.Infrastructure.Postgres;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -12,6 +15,7 @@ builder.AddServiceDefaults();
 var catalogConnectionString = builder.Configuration.GetConnectionString("everloredb")
     ?? throw new InvalidOperationException("Connection string 'everloredb' not found.");
 
+builder.Services.AddApplication();
 builder.Services.AddPostgresInfrastructure(catalogConnectionString);
 
 // JWT settings
@@ -38,7 +42,12 @@ builder.Services.AddAuthorization();
 
 const string bearerSchemeId = "Bearer";
 
-builder.Services.AddControllers();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add<FluentValidationFilter>();
+});
 builder.Services.AddOpenApi();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -69,6 +78,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseExceptionHandler();
 app.UseHttpsRedirection();
 
 app.UseAuthentication();

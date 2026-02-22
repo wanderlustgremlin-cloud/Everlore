@@ -20,6 +20,9 @@ public class MigrationWorker(
         var devTenant = await SeedDevTenantAsync(catalogDb, cancellationToken);
         await SeedConnectorConfigAsync(catalogDb, devTenant, cancellationToken);
 
+        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
+        await SeedRolesAsync(roleManager);
+
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         await SeedDevUserAsync(userManager, catalogDb, devTenant, cancellationToken);
 
@@ -73,6 +76,15 @@ public class MigrationWorker(
         }
     }
 
+    private static async Task SeedRolesAsync(RoleManager<IdentityRole<Guid>> roleManager)
+    {
+        const string superAdminRole = "SuperAdmin";
+        if (!await roleManager.RoleExistsAsync(superAdminRole))
+        {
+            await roleManager.CreateAsync(new IdentityRole<Guid> { Name = superAdminRole });
+        }
+    }
+
     private static async Task SeedDevUserAsync(
         UserManager<ApplicationUser> userManager,
         CatalogDbContext catalogDb,
@@ -86,6 +98,9 @@ public class MigrationWorker(
         var existingUser = await userManager.FindByEmailAsync(devEmail);
         if (existingUser is not null)
         {
+            if (!await userManager.IsInRoleAsync(existingUser, "SuperAdmin"))
+                await userManager.AddToRoleAsync(existingUser, "SuperAdmin");
+
             // Ensure TenantUser link exists
             var hasLink = await catalogDb.TenantUsers
                 .AnyAsync(tu => tu.UserId == existingUser.Id && tu.TenantId == devTenant.Id, cancellationToken);
@@ -121,6 +136,8 @@ public class MigrationWorker(
             var errors = string.Join("; ", result.Errors.Select(e => e.Description));
             throw new InvalidOperationException($"Failed to create dev user: {errors}");
         }
+
+        await userManager.AddToRoleAsync(user, "SuperAdmin");
 
         catalogDb.TenantUsers.Add(new TenantUser
         {

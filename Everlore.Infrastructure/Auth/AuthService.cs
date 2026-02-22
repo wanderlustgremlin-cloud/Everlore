@@ -28,7 +28,7 @@ public class AuthService(
             return new AuthResult(false, Error: "Invalid email or password.");
 
         var tenants = await GetUserTenantsAsync(user.Id);
-        var token = GenerateToken(user);
+        var token = await GenerateTokenAsync(user);
 
         return new AuthResult(true, Token: token, Tenants: tenants);
     }
@@ -47,7 +47,7 @@ public class AuthService(
             return new AuthResult(false, Error: "User does not belong to this tenant.");
 
         var tenants = await GetUserTenantsAsync(userId);
-        var token = GenerateToken(user, tenantUser.TenantId, tenantUser.Role);
+        var token = await GenerateTokenAsync(user, tenantUser.TenantId, tenantUser.Role);
 
         return new AuthResult(true, Token: token, Tenants: tenants);
     }
@@ -70,7 +70,7 @@ public class AuthService(
             return new AuthResult(false, Error: errors);
         }
 
-        var token = GenerateToken(user);
+        var token = await GenerateTokenAsync(user);
         return new AuthResult(true, Token: token, Tenants: []);
     }
 
@@ -87,7 +87,7 @@ public class AuthService(
             .ToListAsync();
     }
 
-    private string GenerateToken(ApplicationUser user, Guid? tenantId = null, TenantRole? role = null)
+    private async Task<string> GenerateTokenAsync(ApplicationUser user, Guid? tenantId = null, TenantRole? role = null)
     {
         var claims = new List<Claim>
         {
@@ -95,6 +95,13 @@ public class AuthService(
             new(JwtRegisteredClaimNames.Email, user.Email!),
             new("fullName", user.FullName)
         };
+
+        // Include Identity roles (e.g. SuperAdmin)
+        var identityRoles = await userManager.GetRolesAsync(user);
+        foreach (var identityRole in identityRoles)
+        {
+            claims.Add(new Claim(ClaimTypes.Role, identityRole));
+        }
 
         if (tenantId.HasValue)
         {
