@@ -13,9 +13,11 @@ namespace Everlore.Infrastructure.Auth;
 public class AuthService(
     UserManager<ApplicationUser> userManager,
     CatalogDbContext catalogDb,
-    IOptions<JwtSettings> jwtOptions) : IAuthService
+    IOptions<JwtSettings> jwtOptions,
+    IOptions<RegistrationSettings> registrationOptions) : IAuthService
 {
     private readonly JwtSettings _jwt = jwtOptions.Value;
+    private readonly RegistrationSettings _registration = registrationOptions.Value;
 
     public async Task<AuthResult> LoginAsync(string email, string password)
     {
@@ -54,6 +56,12 @@ public class AuthService(
 
     public async Task<AuthResult> RegisterAsync(string email, string password, string fullName)
     {
+        if (_registration.Mode == RegistrationMode.Disabled)
+            return new AuthResult(false, Error: "Registration is currently disabled.");
+
+        if (_registration.Mode == RegistrationMode.InviteOnly)
+            return new AuthResult(false, Error: "Registration is by invitation only.");
+
         var user = new ApplicationUser
         {
             UserName = email,

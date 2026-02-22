@@ -47,7 +47,7 @@ Everlore.slnx
 
 - **Catalog DB** — Users, tenants, configurations, data source definitions, report metadata. Managed by `CatalogDbContext` (inherits ASP.NET Identity).
 - **Tenant DB** — Business data per tenant (Accounts Payable, Accounts Receivable, Inventory, Sales, Shipping). Managed by `EverloreDbContext`.
-- **Tenant resolution** — JWT `tenant` claim (primary) with `X-Tenant-Id` header fallback for services and development.
+- **Tenant resolution** — JWT `tenant` claim (primary) with `X-Tenant-Id` header fallback (Development only). `TenantRequiredMiddleware` rejects any `/api/` request without a tenant context (auth and tenant endpoints are exempt).
 - **Generic CRUD** — `CrudController<T>` provides all 5 CRUD operations against `IRepository<T>`. Entity controllers are one-liners that set the route. No DTOs — entities are the API contract.
 - **Validation** — FluentValidation with per-entity validators triggered via a global action filter. MediatR's `ValidationBehavior` handles the tenant management path.
 - **Tenant management** — Uses MediatR with custom handlers for operations that need cross-entity checks, catalog DB access, and role authorization.
@@ -107,6 +107,7 @@ Phase 1 (Platform Hardening) is largely complete:
 - Global error handling with RFC 7807 ProblemDetails
 - Tenant onboarding API (CRUD + user management, SuperAdmin/Admin gated)
 - JWT authentication with role-based authorization
+- Security hardening: tenant isolation guard, header spoofing prevention, rate limiting on auth, security headers, config-driven registration
 
 See [ROADMAP.md](ROADMAP.md) for the full development plan with detailed progress.
 

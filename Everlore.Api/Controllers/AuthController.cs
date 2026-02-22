@@ -1,8 +1,10 @@
 using System.Security.Claims;
+using System.Threading.RateLimiting;
 using Everlore.Api.Models;
 using Everlore.Infrastructure.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Everlore.Api.Controllers;
 
@@ -12,6 +14,7 @@ public class AuthController(IAuthService authService) : ControllerBase
 {
     [HttpPost("login")]
     [AllowAnonymous]
+    [EnableRateLimiting("auth")]
     public async Task<ActionResult<AuthResponse>> Login(LoginRequest request)
     {
         var result = await authService.LoginAsync(request.Email, request.Password);
@@ -32,6 +35,7 @@ public class AuthController(IAuthService authService) : ControllerBase
 
     [HttpPost("register")]
     [AllowAnonymous]
+    [EnableRateLimiting("register")]
     public async Task<ActionResult<AuthResponse>> Register(RegisterRequest request)
     {
         var result = await authService.RegisterAsync(request.Email, request.Password, request.FullName);

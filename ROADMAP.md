@@ -56,6 +56,15 @@ Foundation work that everything else builds on. Prevents rework as features laye
 - [x] `ICurrentUser` abstraction for accessing authenticated user info
 - [x] Dev user seeded: admin@everlore.dev / Admin123!
 
+### 1.7 Security Hardening ✅
+- [x] `TenantRequiredMiddleware` — rejects `/api/` requests without tenant context (auth/tenants exempt); defense-in-depth dummy connection string replaces catalog DB fallback
+- [x] `X-Tenant-Id` header fallback restricted to Development environment only (prevents header spoofing in production)
+- [x] Rate limiting on auth endpoints — login: 10 req/min/IP, register: 3 req/15min/IP (built-in `Microsoft.AspNetCore.RateLimiting`)
+- [x] `SecurityHeadersMiddleware` — X-Content-Type-Options, X-Frame-Options, CSP, Referrer-Policy, Permissions-Policy on all responses (CSP skipped for Swagger paths)
+- [x] HSTS enabled in non-Development environments
+- [x] CORS policy for frontend (config-driven origins, localhost:3000 in dev)
+- [x] Config-driven registration mode — `Open`, `InviteOnly`, or `Disabled` via `Registration__Mode` env var
+
 ---
 
 ## Phase 2 — Reporting API & Ad-Hoc Query Engine

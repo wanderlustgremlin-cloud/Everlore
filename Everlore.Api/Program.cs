@@ -1,10 +1,12 @@
 using System.Text;
+using System.Threading.RateLimiting;
 using Everlore.Api.Filters;
 using Everlore.Api.Middleware;
 using Everlore.Application;
 using Everlore.Infrastructure.Auth;
 using Everlore.Infrastructure.Postgres;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 
@@ -23,6 +25,9 @@ var jwtSection = builder.Configuration.GetSection("Jwt");
 builder.Services.Configure<JwtSettings>(jwtSection);
 var jwt = jwtSection.Get<JwtSettings>()!;
 
+// Registration settings
+builder.Services.Configure<RegistrationSettings>(builder.Configuration.GetSection("Registration"));
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -39,6 +44,53 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 builder.Services.AddAuthorization();
+
+// Rate limiting
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.AddFixedWindowLimiter("auth", limiter =>
+    {
+        limiter.PermitLimit = 10;
+        limiter.Window = TimeSpan.FromMinutes(1);
+        limiter.QueueLimit = 0;
+    });
+
+    options.AddFixedWindowLimiter("register", limiter =>
+    {
+        limiter.PermitLimit = 3;
+        limiter.Window = TimeSpan.FromMinutes(15);
+        limiter.QueueLimit = 0;
+    });
+
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        context.HttpContext.Response.ContentType = "application/problem+json";
+        await context.HttpContext.Response.WriteAsJsonAsync(new
+        {
+            type = "https://tools.ietf.org/html/rfc6585#section-4",
+            title = "Too Many Requests",
+            status = 429,
+            detail = "Rate limit exceeded. Please try again later."
+        }, cancellationToken);
+    };
+});
+
+// CORS for future frontend
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("frontend", policy =>
+    {
+        var origins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+            ?? (builder.Environment.IsDevelopment() ? ["http://localhost:3000"] : []);
+
+        policy.WithOrigins(origins)
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+    });
+});
 
 const string bearerSchemeId = "Bearer";
 
@@ -79,10 +131,21 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseExceptionHandler();
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHsts();
+}
+
 app.UseHttpsRedirection();
+app.UseMiddleware<SecurityHeadersMiddleware>();
+app.UseCors("frontend");
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.UseRateLimiter();
+app.UseMiddleware<TenantRequiredMiddleware>();
 
 app.MapControllers();
 

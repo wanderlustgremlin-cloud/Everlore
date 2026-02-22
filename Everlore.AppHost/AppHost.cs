@@ -24,6 +24,7 @@ builder.AddProject<Projects.Everlore_Api>("everlore-api")
     .WithEnvironment("Jwt__Issuer", "Everlore")
     .WithEnvironment("Jwt__Audience", "Everlore")
     .WithEnvironment("Jwt__ExpirationMinutes", "60")
+    .WithEnvironment("Registration__Mode", "Open")
     .WaitForCompletion(sync);
 
 builder.Build().Run();
