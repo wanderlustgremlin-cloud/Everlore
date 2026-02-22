@@ -31,10 +31,11 @@ Everlore is a self-hostable BI tool designed for companies that want Power BI-st
 
 ```
 Everlore.slnx
-├── Everlore.Domain                    # Domain entities, repository interfaces
-├── Everlore.Infrastructure            # EF configurations, repositories, auth, tenancy
+├── Everlore.Domain                    # Domain entities, base abstractions
+├── Everlore.Application               # MediatR handlers, validators, common models
+├── Everlore.Infrastructure            # EF configurations, generic repository, auth, tenancy
 ├── Everlore.Infrastructure.Postgres   # Npgsql provider, EF migrations
-├── Everlore.Api                       # ASP.NET Core controllers, DTOs
+├── Everlore.Api                       # ASP.NET Core controllers, filters, middleware
 ├── Everlore.Connector.Seed            # Deterministic test data generator
 ├── Everlore.SyncService               # Background data sync worker
 ├── Everlore.MigrationService          # EF migrations + dev data seeding
@@ -47,6 +48,9 @@ Everlore.slnx
 - **Catalog DB** — Users, tenants, configurations, data source definitions, report metadata. Managed by `CatalogDbContext` (inherits ASP.NET Identity).
 - **Tenant DB** — Business data per tenant (Accounts Payable, Accounts Receivable, Inventory, Sales, Shipping). Managed by `EverloreDbContext`.
 - **Tenant resolution** — JWT `tenant` claim (primary) with `X-Tenant-Id` header fallback for services and development.
+- **Generic CRUD** — `CrudController<T>` provides all 5 CRUD operations against `IRepository<T>`. Entity controllers are one-liners that set the route. No DTOs — entities are the API contract.
+- **Validation** — FluentValidation with per-entity validators triggered via a global action filter. MediatR's `ValidationBehavior` handles the tenant management path.
+- **Tenant management** — Uses MediatR with custom handlers for operations that need cross-entity checks, catalog DB access, and role authorization.
 
 ## Getting Started
 
@@ -95,11 +99,20 @@ Everlore.slnx
 3. Use tenant-scoped JWT on all other endpoints
 ```
 
+## Current Status
+
+Phase 1 (Platform Hardening) is largely complete:
+- Paginated & sortable list endpoints on all entities
+- Application layer with generic CRUD pattern and MediatR for tenant management
+- Global error handling with RFC 7807 ProblemDetails
+- Tenant onboarding API (CRUD + user management, SuperAdmin/Admin gated)
+- JWT authentication with role-based authorization
+
+See [ROADMAP.md](ROADMAP.md) for the full development plan with detailed progress.
+
 ## Roadmap
 
-See [ROADMAP.md](ROADMAP.md) for the full development plan.
-
-1. **Platform Hardening** — Pagination, application layer, error handling, tenant onboarding
+1. **Platform Hardening** — Pagination, application layer, error handling, tenant onboarding *(mostly complete)*
 2. **Reporting API & Ad-Hoc Query Engine** — Query model, data source abstraction, schema discovery, execution engine
 3. **Frontend & Dashboard Builder** — React/Next.js report builder, dashboards, interactive filtering
 4. **AI Integration** — Provider abstraction, natural language to query, data-aware chat

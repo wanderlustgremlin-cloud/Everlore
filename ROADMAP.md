@@ -8,33 +8,53 @@ Everlore is a multi-tenant BI platform that lets users connect to any data sourc
 
 Foundation work that everything else builds on. Prevents rework as features layer in.
 
-### 1.1 Pagination & Filtering
-- Cursor-based or offset pagination on all list endpoints
-- Filtering by date ranges, status, and key fields
-- Consistent query parameter conventions across all controllers
-- Sorting support (field + direction)
+### 1.1 Pagination & Sorting ✅
+- [x] Offset pagination on all list endpoints (`PaginationQuery` with page/pageSize)
+- [x] Sorting support (field + direction via `SortBy`/`SortDir` query params)
+- [x] Consistent query parameter conventions across all controllers (generic `CrudController<T>`)
+- [x] `PagedResult<T>` response model with totalCount, totalPages, hasNextPage, hasPreviousPage
+- [ ] Filtering by date ranges, status, and key fields
+- [ ] Cursor-based pagination option for large datasets
 
-### 1.2 Application Service Layer
-- New `Everlore.Application` project with commands/queries pattern
-- Extract business logic out of controllers into focused service classes
-- Define clean interfaces that the API layer calls into
-- This layer becomes the home for analytics queries and report execution later
+### 1.2 Application Service Layer ✅
+- [x] `Everlore.Application` project with MediatR commands/queries
+- [x] Tenant management handlers with custom logic (7 handlers via MediatR)
+- [x] Generic `CrudController<T>` for standard CRUD — bypasses MediatR, talks to `IRepository<T>` directly
+- [x] FluentValidation with per-entity validators triggered via `FluentValidationFilter`
+- [x] `ValidationBehavior` pipeline for MediatR path (tenant handlers)
+- [x] `LoggingBehavior` pipeline for MediatR path
+- [x] Common models: `Result<T>`, `PagedResult<T>`, `PaginationQuery`
 
-### 1.3 Global Error Handling
-- RFC 7807 ProblemDetails for all error responses
-- Exception handling middleware with consistent error shape
-- Structured validation error formatting
-- Correlation IDs for request tracing
+**Design decision:** No DTOs — entities are the API contract. Navigation properties aren't loaded (no lazy loading, no `.Include()`), so they serialize as empty collections. Validators operate on entities directly (`AbstractValidator<Vendor>`) instead of command records. MediatR is reserved for handlers with genuinely custom logic (tenant management).
+
+### 1.3 Global Error Handling ✅
+- [x] RFC 7807 ProblemDetails for all error responses
+- [x] `GlobalExceptionHandler` middleware with consistent error shape
+- [x] Structured validation error formatting (FluentValidation → `ValidationException` → 422 ProblemDetails with grouped errors)
+- [x] Not found handling (`NotFoundException` → 404 ProblemDetails)
+- [ ] Correlation IDs for request tracing
 
 ### 1.4 Audit Trail
-- Track who changed what and when on entity mutations
-- Created-by / updated-by fields tied to the authenticated user
-- Feeds future analytics on data freshness and user activity
+- [ ] Track who changed what and when on entity mutations
+- [ ] Created-by / updated-by fields tied to the authenticated user
+- [ ] Feeds future analytics on data freshness and user activity
 
-### 1.5 Tenant Onboarding API
-- Admin endpoint to create tenants and provision their database programmatically
-- Tenant settings and configuration management
-- Replace manual seeding with a self-service flow
+### 1.5 Tenant Onboarding API ✅
+- [x] Admin endpoints to create/update tenants (SuperAdmin only)
+- [x] Tenant user management: list, add, remove users (SuperAdmin + Admin)
+- [x] Role-based authorization on tenant endpoints
+- [x] SuperAdmin role seeded in dev environment
+- [ ] Programmatic tenant database provisioning
+- [ ] Tenant settings and configuration management
+- [ ] Replace manual seeding with a self-service flow
+
+### 1.6 Authentication ✅
+- [x] ASP.NET Identity with JWT tokens
+- [x] Login, register, and tenant-scoped token exchange
+- [x] Identity roles (SuperAdmin) included in JWT claims
+- [x] Tenant claim in JWT for scoped access
+- [x] `ICurrentUser` abstraction for accessing authenticated user info
+- [x] Dev user seeded: admin@everlore.dev / Admin123!
 
 ---
 
@@ -254,3 +274,17 @@ The query model and execution engine from Phase 2 are the single most important 
 - **Catalog DB**: users, tenants, configurations, data source definitions, report metadata
 - **Tenant DB**: business data (synced from connectors or queried live from connected sources)
 - Users authenticate before tenant is known; pick tenant to get a scoped JWT
+
+### Project Structure
+| Project | Purpose |
+|---------|---------|
+| `Everlore.Domain` | Pure domain entities, no infrastructure deps |
+| `Everlore.Application` | MediatR handlers (tenancy), validators, common models |
+| `Everlore.Infrastructure` | EF configs, repos, auth, tenancy (provider-agnostic) |
+| `Everlore.Infrastructure.Postgres` | Npgsql, migrations, Postgres-specific DI |
+| `Everlore.Api` | ASP.NET Core controllers, filters, middleware |
+| `Everlore.Connector.Seed` | Deterministic test data generator |
+| `Everlore.SyncService` | Background sync worker |
+| `Everlore.MigrationService` | EF migrations + dev data seeding |
+| `Everlore.AppHost` | Aspire orchestrator |
+| `Everlore.ServiceDefaults` | Shared Aspire config |
