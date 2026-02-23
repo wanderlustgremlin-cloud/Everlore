@@ -8,11 +8,29 @@ namespace Everlore.Api.Controllers;
 public abstract class CrudController<T>(IRepository<T> repository) : ApiControllerBase
     where T : BaseEntity
 {
+    private static readonly HashSet<string> PaginationKeys = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "page", "pageSize", "sortBy", "sortDir", "after"
+    };
+
     [HttpGet]
     public async Task<IActionResult> GetAll(
-        [FromQuery] PaginationQuery pagination, CancellationToken ct)
+        [FromQuery] PaginationQuery pagination,
+        [FromQuery] string? after,
+        CancellationToken ct)
     {
-        var result = await repository.Query().ToPagedResultAsync(pagination, ct);
+        var filters = ExtractFilters();
+        var query = repository.Query();
+
+        if (!string.IsNullOrWhiteSpace(after))
+        {
+            var cursorQuery = new CursorPaginationQuery(
+                pagination.PageSize, after, pagination.SortBy, pagination.SortDir);
+            var cursorResult = await query.ToCursorPagedResultAsync(cursorQuery, filters, ct);
+            return Ok(cursorResult);
+        }
+
+        var result = await query.ToPagedResultAsync(pagination, filters, ct);
         return Ok(result);
     }
 
@@ -29,9 +47,6 @@ public abstract class CrudController<T>(IRepository<T> repository) : ApiControll
         if (entity.Id == Guid.Empty)
             entity.Id = Guid.NewGuid();
 
-        entity.CreatedAt = DateTime.UtcNow;
-        entity.UpdatedAt = DateTime.UtcNow;
-
         repository.Add(entity);
         await repository.SaveChangesAsync(ct);
 
@@ -46,7 +61,6 @@ public abstract class CrudController<T>(IRepository<T> repository) : ApiControll
 
         entity.Id = id;
         repository.SetValues(existing, entity);
-        existing.UpdatedAt = DateTime.UtcNow;
 
         await repository.SaveChangesAsync(ct);
         return NoContent();
@@ -61,5 +75,16 @@ public abstract class CrudController<T>(IRepository<T> repository) : ApiControll
         repository.Remove(entity);
         await repository.SaveChangesAsync(ct);
         return NoContent();
+    }
+
+    private IDictionary<string, string> ExtractFilters()
+    {
+        var filters = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var kvp in HttpContext.Request.Query)
+        {
+            if (!PaginationKeys.Contains(kvp.Key) && !string.IsNullOrWhiteSpace(kvp.Value))
+                filters[kvp.Key] = kvp.Value!;
+        }
+        return filters;
     }
 }

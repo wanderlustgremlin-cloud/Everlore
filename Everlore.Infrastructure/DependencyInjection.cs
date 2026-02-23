@@ -20,6 +20,7 @@ public static class DependencyInjection
     {
         services.AddHttpContextAccessor();
 
+        services.AddScoped<AuditSaveChangesInterceptor>();
         services.AddScoped<ITenantProvider, TenantProvider>();
         services.AddScoped<TenantConnectionResolver>();
         services.AddScoped<ICurrentUser, CurrentUser>();

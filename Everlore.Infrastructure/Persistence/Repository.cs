@@ -28,8 +28,10 @@ public class Repository<T>(EverloreDbContext context) : IRepository<T> where T :
     public void SetValues(T existing, T incoming)
     {
         var createdAt = existing.CreatedAt;
+        var createdBy = existing.CreatedBy;
         Context.Entry(existing).CurrentValues.SetValues(incoming);
         existing.CreatedAt = createdAt;
+        existing.CreatedBy = createdBy;
     }
 
     public Task<int> SaveChangesAsync(CancellationToken ct = default)

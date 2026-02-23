@@ -1,5 +1,7 @@
+using Everlore.Application.Common.Interfaces;
 using Everlore.Infrastructure;
 using Everlore.Infrastructure.Persistence;
+using Everlore.Infrastructure.Postgres.Tenancy;
 using Everlore.Infrastructure.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,9 +15,12 @@ public static class DependencyInjection
         services.AddInfrastructureCore();
         services.AddAuthServices();
 
-        services.AddDbContext<CatalogDbContext>(options =>
+        services.AddDbContext<CatalogDbContext>((serviceProvider, options) =>
+        {
             options.UseNpgsql(catalogConnectionString, o =>
-                o.MigrationsAssembly("Everlore.Infrastructure.Postgres")));
+                o.MigrationsAssembly("Everlore.Infrastructure.Postgres"));
+            options.AddInterceptors(serviceProvider.GetRequiredService<AuditSaveChangesInterceptor>());
+        });
 
         // Defense-in-depth: if no tenant is resolved, use a dummy connection string
         // that will fail loudly rather than silently falling back to the catalog DB.
@@ -29,7 +34,10 @@ public static class DependencyInjection
 
             options.UseNpgsql(connectionString ?? noTenantConnectionString, o =>
                 o.MigrationsAssembly("Everlore.Infrastructure.Postgres"));
+            options.AddInterceptors(serviceProvider.GetRequiredService<AuditSaveChangesInterceptor>());
         });
+
+        services.AddScoped<ITenantDatabaseProvisioner, PostgresTenantDatabaseProvisioner>();
 
         return services;
     }

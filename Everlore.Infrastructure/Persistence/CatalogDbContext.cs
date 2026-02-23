@@ -14,6 +14,7 @@ public class CatalogDbContext : IdentityDbContext<ApplicationUser, IdentityRole<
     public DbSet<Tenant> Tenants => Set<Tenant>();
     public DbSet<ConnectorConfiguration> ConnectorConfigurations => Set<ConnectorConfiguration>();
     public DbSet<TenantUser> TenantUsers => Set<TenantUser>();
+    public DbSet<TenantSetting> TenantSettings => Set<TenantSetting>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -22,6 +23,7 @@ public class CatalogDbContext : IdentityDbContext<ApplicationUser, IdentityRole<
         modelBuilder.ApplyConfiguration(new Configurations.TenantConfiguration());
         modelBuilder.ApplyConfiguration(new Configurations.ConnectorConfigurationConfiguration());
         modelBuilder.ApplyConfiguration(new Configurations.TenantUserConfiguration());
+        modelBuilder.ApplyConfiguration(new Configurations.TenantSettingConfiguration());
     }
 
     public override int SaveChanges()

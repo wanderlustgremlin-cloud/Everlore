@@ -101,11 +101,13 @@ Everlore.slnx
 
 ## Current Status
 
-Phase 1 (Platform Hardening) is largely complete:
-- Paginated & sortable list endpoints on all entities
+Phase 1 (Platform Hardening) is complete:
+- Paginated & sortable list endpoints on all entities with generic filtering (date ranges, enums, bools, GUIDs)
+- Cursor-based pagination as an alternative to offset pagination for large datasets
 - Application layer with generic CRUD pattern and MediatR for tenant management
-- Global error handling with RFC 7807 ProblemDetails
-- Tenant onboarding API (CRUD + user management, SuperAdmin/Admin gated)
+- Global error handling with RFC 7807 ProblemDetails and correlation IDs
+- Audit trail: `CreatedBy`/`UpdatedBy` fields on all entities via EF interceptor
+- Tenant onboarding API with auto-provisioning of tenant databases and key-value settings
 - JWT authentication with role-based authorization
 - Security hardening: tenant isolation guard, header spoofing prevention, rate limiting on auth, security headers, config-driven registration
 
@@ -113,7 +115,7 @@ See [ROADMAP.md](ROADMAP.md) for the full development plan with detailed progres
 
 ## Roadmap
 
-1. **Platform Hardening** — Pagination, application layer, error handling, tenant onboarding *(mostly complete)*
+1. **Platform Hardening** — Pagination, filtering, cursor pagination, correlation IDs, audit trail, tenant provisioning, tenant settings *(complete)*
 2. **Reporting API & Ad-Hoc Query Engine** — Query model, data source abstraction, schema discovery, execution engine
 3. **Frontend & Dashboard Builder** — React/Next.js report builder, dashboards, interactive filtering
 4. **AI Integration** — Provider abstraction, natural language to query, data-aware chat

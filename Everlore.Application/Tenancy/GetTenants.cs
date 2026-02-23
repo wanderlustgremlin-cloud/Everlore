@@ -25,6 +25,6 @@ public class GetTenantsHandler(ICatalogDbContext db) : IRequestHandler<GetTenant
             .Select(t => new TenantDto(
                 t.Id, t.Name, t.Identifier, t.IsActive, t.CreatedAt, t.UpdatedAt));
 
-        return await query.ToPagedResultAsync(request.Pagination, cancellationToken);
+        return await query.ToPagedResultAsync(request.Pagination, ct: cancellationToken);
     }
 }

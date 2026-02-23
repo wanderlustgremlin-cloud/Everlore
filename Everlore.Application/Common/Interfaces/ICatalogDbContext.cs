@@ -7,5 +7,6 @@ public interface ICatalogDbContext
 {
     DbSet<Tenant> Tenants { get; }
     DbSet<TenantUser> TenantUsers { get; }
+    DbSet<TenantSetting> TenantSettings { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

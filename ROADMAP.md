@@ -8,13 +8,13 @@ Everlore is a multi-tenant BI platform that lets users connect to any data sourc
 
 Foundation work that everything else builds on. Prevents rework as features layer in.
 
-### 1.1 Pagination & Sorting ✅
+### 1.1 Pagination, Sorting & Filtering ✅
 - [x] Offset pagination on all list endpoints (`PaginationQuery` with page/pageSize)
 - [x] Sorting support (field + direction via `SortBy`/`SortDir` query params)
 - [x] Consistent query parameter conventions across all controllers (generic `CrudController<T>`)
 - [x] `PagedResult<T>` response model with totalCount, totalPages, hasNextPage, hasPreviousPage
-- [ ] Filtering by date ranges, status, and key fields
-- [ ] Cursor-based pagination option for large datasets
+- [x] Generic reflection-based filtering: exact match (string, bool, Guid, enum), date ranges (`From`/`To` suffixes), numeric types
+- [x] Cursor-based pagination (`?after=<cursor>`) with `CursorPagedResult<T>`, Base64-encoded cursor, deterministic secondary sort by Id
 
 ### 1.2 Application Service Layer ✅
 - [x] `Everlore.Application` project with MediatR commands/queries
@@ -32,20 +32,21 @@ Foundation work that everything else builds on. Prevents rework as features laye
 - [x] `GlobalExceptionHandler` middleware with consistent error shape
 - [x] Structured validation error formatting (FluentValidation → `ValidationException` → 422 ProblemDetails with grouped errors)
 - [x] Not found handling (`NotFoundException` → 404 ProblemDetails)
-- [ ] Correlation IDs for request tracing
+- [x] Correlation IDs: `CorrelationIdMiddleware` reads/generates `X-Correlation-Id`, sets `TraceIdentifier`, wraps request in logging scope, includes in error ProblemDetails
 
-### 1.4 Audit Trail
-- [ ] Track who changed what and when on entity mutations
-- [ ] Created-by / updated-by fields tied to the authenticated user
-- [ ] Feeds future analytics on data freshness and user activity
+### 1.4 Audit Trail ✅
+- [x] `CreatedBy`/`UpdatedBy` fields on `BaseEntity` (nullable Guid — null for system operations)
+- [x] `AuditSaveChangesInterceptor` sets audit fields from `ICurrentUser.UserId` on both DbContexts
+- [x] `Repository.SetValues` preserves both `CreatedAt` and `CreatedBy` on update
+- [x] `CrudController` no longer manually assigns timestamps — `SetTimestamps()` and interceptor handle everything
 
 ### 1.5 Tenant Onboarding API ✅
 - [x] Admin endpoints to create/update tenants (SuperAdmin only)
 - [x] Tenant user management: list, add, remove users (SuperAdmin + Admin)
 - [x] Role-based authorization on tenant endpoints
 - [x] SuperAdmin role seeded in dev environment
-- [ ] Programmatic tenant database provisioning
-- [ ] Tenant settings and configuration management
+- [x] Programmatic tenant database provisioning: `PostgresTenantDatabaseProvisioner` auto-creates Postgres DB + runs migrations when `ConnectionString` is omitted from `CreateTenantCommand`
+- [x] Tenant settings: key-value config per tenant (`TenantSetting` entity in catalog DB) with GET/PUT/DELETE endpoints, `WellKnownSettings` constants for AI provider, feature flags, branding
 - [ ] Replace manual seeding with a self-service flow
 
 ### 1.6 Authentication ✅
