@@ -68,47 +68,56 @@ Foundation work that everything else builds on. Prevents rework as features laye
 
 ---
 
-## Phase 2 — Reporting API & Ad-Hoc Query Engine
+## Phase 2 — Reporting API & Ad-Hoc Query Engine ✅
 
-The core product. Not canned reports — a flexible engine that lets users connect to anything and build their own reports.
+The core product. Users connect to external databases, browse schemas, build queries, and save reports.
 
-### 2.1 Query Model
-- Structured representation of a query: measures, dimensions, filters, date range, sort, limit
-- Serializable to JSON for storage as saved report definitions
-- Composable — filters can be layered, dimensions can be nested
-- Analogous to Power BI's semantic model or Looker's explore concept
+### 2.1 Data Source Abstraction ✅
+- [x] DataSource entity in catalog DB: TenantId, Name, Type (PostgreSql/SqlServer/MySql), encrypted connection string
+- [x] Connection string encryption via ASP.NET Data Protection API (auto key rotation)
+- [x] Full CRUD API: DataSourcesController with MediatR handlers (create, update, delete, list, get)
+- [x] Connection test endpoint: POST /datasources/{id}/test
+- [x] Tenant-scoped: all operations enforce tenant isolation via ICurrentUser.TenantId
 
-### 2.2 Data Source Abstraction
-- Users connect to any data source: Postgres, SQL Server, MySQL, REST APIs, CSV uploads
-- User configures connection completely — connection string, auth credentials, driver
-- Similar UX to Power BI's "Get Data" flow: advanced but user-friendly
-- Each connected source becomes a queryable entity within the tenant
-- Connection credentials stored securely (encrypted at rest)
+### 2.2 Schema Discovery ✅
+- [x] Per-dialect schema introspectors (Postgres, SQL Server, MySQL) via Dapper against information_schema
+- [x] Primary key detection via system catalogs (pg_constraint, sys.indexes, KEY_COLUMN_USAGE)
+- [x] TypeNormalizer maps native types to normalized set: String, Integer, Decimal, DateTime, Boolean, Guid, Other
+- [x] Schema cached in Garnet with 1-hour TTL; SchemaLastRefreshedAt tracked on DataSource entity
+- [x] API: GET /datasources/{id}/schema (cached) and POST /datasources/{id}/schema/refresh (force)
 
-### 2.3 Schema Discovery
-- On data source connection, introspect the schema: tables, columns, data types, relationships
-- Cache discovered schema metadata per data source
-- Present schema in the report builder so users can browse and select fields
-- Support schema refresh when the underlying source changes
+### 2.3 Query Model + Execution Engine ✅
+- [x] QueryDefinition: measures (Sum/Count/Avg/Min/Max/CountDistinct), dimensions (with date bucketing), filters, sorts, limit/offset
+- [x] Dialect-specific SQL translators: Postgres (DATE_TRUNC, LIMIT/OFFSET), SQL Server (DATEPART/OFFSET FETCH), MySQL (DATE_FORMAT, LIMIT)
+- [x] All filter values parameterized via DynamicParameters; column names validated against cached schema
+- [x] Query results cached in Garnet (5-min TTL); row limit enforced (10k default); 60s query timeout
+- [x] API: POST /queries/execute (ad-hoc) and POST /reports/{id}/execute (saved report)
 
-### 2.4 Execution Engine
-- Takes a query model and translates it to the target data source's native dialect
-- Multi-backend query translator:
-  - SQL generators for Postgres, SQL Server, MySQL
-  - REST adapter for API-based sources
-  - CSV/file adapter for uploaded flat files
-- Returns structured results: rows, columns, metadata, row count
-- Query timeout and row limit guardrails
+### 2.4 Report Definitions ✅
+- [x] ReportDefinition entity in catalog DB: DataSourceId, QueryDefinitionJson, VisualizationConfigJson, IsPublic, Version
+- [x] Full CRUD API: ReportsController with MediatR handlers
+- [x] Version auto-increment on update; tenant-scoped with DataSource FK
 
-### 2.5 Report Definitions
-- Saved queries with layout and visualization preferences
-- Parameterized — date ranges, filters, and groupings as reusable variables
-- Shareable within a tenant (public/private visibility)
-- Versioned — users can iterate without losing previous configurations
+### 2.5 GraphQL Explore Mode ✅
+- [x] HotChocolate GraphQL endpoint at /graphql with JWT authorization
+- [x] `explore` query: field selection → SELECT with per-dialect quoting via Dapper
+- [x] `dataSourceSchema` query: introspect tables/columns for a data source
+- [x] Dynamic type mapping: NormalizedType → GraphQL scalars (String, Int, Float, DateTime, Boolean, UUID)
 
-### 2.6 Export
-- CSV and Excel (ClosedXML or similar) from day one
-- Structured export — column headers, data types preserved
+### 2.6 Real-Time Progress ✅
+- [x] SignalR hub at /hubs/query with tenant-scoped groups
+- [x] Strongly-typed client: QueryProgress, QueryCompleted, QueryFailed messages
+- [x] JWT via query string for WebSocket connections
+- [x] Redis backplane via StackExchange.Redis for multi-instance support
+
+### 2.7 Infrastructure ✅
+- [x] Everlore.QueryEngine project: isolates external DB concerns (Dapper, Npgsql, SqlClient, MySqlConnector)
+- [x] Polly resilience: retry (3 attempts, exponential backoff), circuit breaker (50% failure ratio, 30s break), 30s timeout
+- [x] Garnet (Redis-compatible) cache via Aspire with data volume
+- [x] TenantRequiredMiddleware expanded to guard /graphql and /hubs paths
+
+### 2.8 Export — not started
+- CSV and Excel export from query results
 - PDF export as a later addition
 
 ---
@@ -274,8 +283,11 @@ The query model and execution engine from Phase 2 are the single most important 
 | Layer | Technology |
 |-------|-----------|
 | Domain & API | .NET 10, ASP.NET Core, Entity Framework Core |
+| Query Engine | Dapper, HotChocolate (GraphQL), Polly |
+| Cache | Garnet (Redis-compatible) via Aspire |
+| Real-time | SignalR with Redis backplane |
 | Orchestration | .NET Aspire |
-| Database | PostgreSQL (catalog + per-tenant) |
+| Database | PostgreSQL (catalog + per-tenant), SQL Server, MySQL (external sources) |
 | Frontend | React, Next.js, TypeScript |
 | AI | Provider-agnostic (OpenAI, Anthropic, Ollama, vLLM) |
 | Auth | ASP.NET Identity + JWT |
@@ -292,9 +304,10 @@ The query model and execution engine from Phase 2 are the single most important 
 | `Everlore.Application` | MediatR handlers (tenancy), validators, common models |
 | `Everlore.Infrastructure` | EF configs, repos, auth, tenancy (provider-agnostic) |
 | `Everlore.Infrastructure.Postgres` | Npgsql, migrations, Postgres-specific DI |
-| `Everlore.Api` | ASP.NET Core controllers, filters, middleware |
+| `Everlore.QueryEngine` | External DB connections, SQL translation, schema discovery, GraphQL resolvers |
+| `Everlore.Api` | ASP.NET Core controllers, filters, middleware, SignalR hub |
 | `Everlore.Connector.Seed` | Deterministic test data generator |
 | `Everlore.SyncService` | Background sync worker |
 | `Everlore.MigrationService` | EF migrations + dev data seeding |
-| `Everlore.AppHost` | Aspire orchestrator |
+| `Everlore.AppHost` | Aspire orchestrator (Postgres + Garnet) |
 | `Everlore.ServiceDefaults` | Shared Aspire config |

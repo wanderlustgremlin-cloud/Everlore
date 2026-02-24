@@ -5,7 +5,9 @@ using Everlore.Api.Middleware;
 using Everlore.Application;
 using Everlore.Infrastructure.Auth;
 using Everlore.Infrastructure.Postgres;
+using Everlore.Api.Hubs;
 using Everlore.QueryEngine;
+using Everlore.QueryEngine.Execution;
 using Everlore.QueryEngine.GraphQL;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
@@ -44,6 +46,21 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidIssuer = jwt.Issuer,
             ValidAudience = jwt.Audience,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.SigningKey))
+        };
+
+        // Allow JWT token via query string for SignalR connections
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+                {
+                    context.Token = accessToken;
+                }
+                return Task.CompletedTask;
+            }
         };
     });
 
@@ -104,6 +121,15 @@ builder.Services.AddControllers(options =>
 {
     options.Filters.Add<FluentValidationFilter>();
 });
+// SignalR
+var cacheConnectionString = builder.Configuration.GetConnectionString("cache");
+var signalRBuilder = builder.Services.AddSignalR();
+if (!string.IsNullOrWhiteSpace(cacheConnectionString))
+{
+    signalRBuilder.AddStackExchangeRedis(cacheConnectionString);
+}
+builder.Services.AddScoped<IQueryProgressNotifier, SignalRQueryProgressNotifier>();
+
 builder.Services
     .AddGraphQLServer()
     .AddQueryType<DynamicQueryType>()
@@ -160,5 +186,6 @@ app.UseMiddleware<TenantRequiredMiddleware>();
 
 app.MapControllers();
 app.MapGraphQL("/graphql").RequireAuthorization();
+app.MapHub<QueryHub>("/hubs/query");
 
 app.Run();

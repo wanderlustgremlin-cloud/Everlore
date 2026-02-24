@@ -35,11 +35,12 @@ Everlore.slnx
 ├── Everlore.Application               # MediatR handlers, validators, common models
 ├── Everlore.Infrastructure            # EF configurations, generic repository, auth, tenancy
 ├── Everlore.Infrastructure.Postgres   # Npgsql provider, EF migrations
-├── Everlore.Api                       # ASP.NET Core controllers, filters, middleware
+├── Everlore.QueryEngine               # External DB connections, SQL translation, schema discovery, GraphQL
+├── Everlore.Api                       # ASP.NET Core controllers, filters, middleware, SignalR
 ├── Everlore.Connector.Seed            # Deterministic test data generator
 ├── Everlore.SyncService               # Background data sync worker
 ├── Everlore.MigrationService          # EF migrations + dev data seeding
-├── Everlore.AppHost                   # .NET Aspire orchestrator
+├── Everlore.AppHost                   # .NET Aspire orchestrator (Postgres + Garnet)
 └── Everlore.ServiceDefaults           # Shared Aspire configuration
 ```
 
