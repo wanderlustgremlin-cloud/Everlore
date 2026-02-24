@@ -45,4 +45,11 @@ public class ReportsController(ISender sender) : ApiControllerBase
         var result = await sender.Send(new DeleteReportCommand(id), ct);
         return result.IsSuccess ? NoContent() : ToError(result);
     }
+
+    [HttpPost("{id:guid}/execute")]
+    public async Task<IActionResult> Execute(Guid id, CancellationToken ct)
+    {
+        var result = await sender.Send(new ExecuteReportCommand(id), ct);
+        return result.IsSuccess ? Ok(result.Value) : ToError(result);
+    }
 }

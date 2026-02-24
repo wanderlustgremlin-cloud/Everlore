@@ -2,7 +2,9 @@ using Everlore.Application.Common.Interfaces;
 using Everlore.Application.Reporting.DataSources;
 using Everlore.QueryEngine.Caching;
 using Everlore.QueryEngine.Connections;
+using Everlore.QueryEngine.Execution;
 using Everlore.QueryEngine.Schema;
+using Everlore.QueryEngine.Translation;
 using Microsoft.Extensions.DependencyInjection;
 using Polly;
 using Polly.Registry;
@@ -33,6 +35,11 @@ public static class DependencyInjection
         // Schema discovery
         services.AddSingleton<SchemaIntrospectorFactory>();
         services.AddScoped<ISchemaService, SchemaService>();
+
+        // Query translation + execution
+        services.AddSingleton<SqlTranslatorFactory>();
+        services.AddScoped<Execution.IQueryExecutionService, QueryExecutionService>();
+        services.AddScoped<Application.Common.Interfaces.IQueryExecutionService, QueryExecutionServiceAdapter>();
 
         // Resilience pipeline
         services.AddResiliencePipeline("external-db", builder =>
