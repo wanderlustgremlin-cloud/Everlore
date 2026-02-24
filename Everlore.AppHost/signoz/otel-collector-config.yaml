@@ -1,0 +1,58 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+    send_batch_size: 10000
+    send_batch_max_size: 11000
+    timeout: 10s
+
+connectors:
+  signozspanmetrics/delta: {}
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+exporters:
+  clickhousetraces:
+    datasource: tcp://signoz-clickhouse:9000/signoz_traces
+    use_new_schema: true
+
+  signozclickhousemetrics:
+    dsn: tcp://signoz-clickhouse:9000/signoz_metrics
+    enable_exp_histogram: true
+
+  clickhouselogsexporter:
+    dsn: tcp://signoz-clickhouse:9000/signoz_logs
+    timeout: 10s
+    use_new_schema: true
+
+  signozclickhousemeter:
+    dsn: tcp://signoz-clickhouse:9000/signoz_meter
+    timeout: 45s
+
+service:
+  extensions: [health_check]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [signozspanmetrics/delta, batch]
+      exporters: [clickhousetraces]
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [signozclickhousemetrics]
+    metrics/spanmetrics:
+      receivers: [signozspanmetrics/delta]
+      processors: [batch]
+      exporters: [signozclickhousemetrics]
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [clickhouselogsexporter]
