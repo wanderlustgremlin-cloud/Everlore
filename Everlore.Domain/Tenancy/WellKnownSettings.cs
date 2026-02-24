@@ -10,4 +10,6 @@ public static class WellKnownSettings
     public const string FeatureReportSharing = "feature.reportSharing";
     public const string BrandingPrimaryColor = "branding.primaryColor";
     public const string BrandingLogoUrl = "branding.logoUrl";
+    public const string QueryCacheTtlSeconds = "query.cacheTtlSeconds";
+    public const string QueryMaxRowLimit = "query.maxRowLimit";
 }

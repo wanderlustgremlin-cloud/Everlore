@@ -8,6 +8,7 @@ using Everlore.Domain.Shipping;
 using Everlore.Domain.Tenancy;
 using Everlore.Infrastructure.Auth;
 using Everlore.Infrastructure.Persistence;
+using Everlore.Infrastructure.Security;
 using Everlore.Infrastructure.Tenancy;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
@@ -25,6 +26,7 @@ public static class DependencyInjection
         services.AddScoped<TenantConnectionResolver>();
         services.AddScoped<ICurrentUser, CurrentUser>();
         services.AddScoped<ICatalogDbContext>(sp => sp.GetRequiredService<CatalogDbContext>());
+        services.AddSingleton<IEncryptionService, DataProtectionEncryptionService>();
 
         // Generic repositories (used by CrudController<T>)
         services.AddScoped<IRepository<Vendor>, Repository<Vendor>>();

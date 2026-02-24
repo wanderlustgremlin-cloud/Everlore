@@ -101,7 +101,9 @@ Everlore.slnx
 
 ## Current Status
 
-Phase 1 (Platform Hardening) is complete:
+Phase 1 (Platform Hardening) is complete. Phase 2 (Reporting API) is in progress:
+
+**Phase 1 — Complete:**
 - Paginated & sortable list endpoints on all entities with generic filtering (date ranges, enums, bools, GUIDs)
 - Cursor-based pagination as an alternative to offset pagination for large datasets
 - Application layer with generic CRUD pattern and MediatR for tenant management
@@ -111,12 +113,23 @@ Phase 1 (Platform Hardening) is complete:
 - JWT authentication with role-based authorization
 - Security hardening: tenant isolation guard, header spoofing prevention, rate limiting on auth, security headers, config-driven registration
 
+**Phase 2 — In Progress:**
+- DataSource and ReportDefinition entities in catalog DB with full CRUD API
+- Connection string encryption via ASP.NET Data Protection API
+- Connection test endpoint for verifying data source connectivity
+- Schema discovery for Postgres, SQL Server, and MySQL
+- Analytical query model with dialect-specific SQL translation
+- GraphQL explore mode via HotChocolate with dynamic per-tenant schemas
+- Real-time query progress via SignalR
+- Garnet (Redis-compatible) cache for schema and query results
+- Polly resilience (retry + circuit breaker) on external DB connections
+
 See [ROADMAP.md](ROADMAP.md) for the full development plan with detailed progress.
 
 ## Roadmap
 
 1. **Platform Hardening** — Pagination, filtering, cursor pagination, correlation IDs, audit trail, tenant provisioning, tenant settings *(complete)*
-2. **Reporting API & Ad-Hoc Query Engine** — Query model, data source abstraction, schema discovery, execution engine
+2. **Reporting API & Ad-Hoc Query Engine** — Data sources, schema discovery, query model, SQL translation, GraphQL, SignalR *(in progress)*
 3. **Frontend & Dashboard Builder** — React/Next.js report builder, dashboards, interactive filtering
 4. **AI Integration** — Provider abstraction, natural language to query, data-aware chat
 5. **Data Pipeline & Connectors** — Connector SDK, QuickBooks/Xero, scheduled sync

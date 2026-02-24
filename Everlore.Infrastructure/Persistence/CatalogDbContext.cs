@@ -1,5 +1,6 @@
 using Everlore.Application.Common.Interfaces;
 using Everlore.Domain.Common;
+using Everlore.Domain.Reporting;
 using Everlore.Domain.Tenancy;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -15,6 +16,8 @@ public class CatalogDbContext : IdentityDbContext<ApplicationUser, IdentityRole<
     public DbSet<ConnectorConfiguration> ConnectorConfigurations => Set<ConnectorConfiguration>();
     public DbSet<TenantUser> TenantUsers => Set<TenantUser>();
     public DbSet<TenantSetting> TenantSettings => Set<TenantSetting>();
+    public DbSet<DataSource> DataSources => Set<DataSource>();
+    public DbSet<ReportDefinition> ReportDefinitions => Set<ReportDefinition>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -24,6 +27,8 @@ public class CatalogDbContext : IdentityDbContext<ApplicationUser, IdentityRole<
         modelBuilder.ApplyConfiguration(new Configurations.ConnectorConfigurationConfiguration());
         modelBuilder.ApplyConfiguration(new Configurations.TenantUserConfiguration());
         modelBuilder.ApplyConfiguration(new Configurations.TenantSettingConfiguration());
+        modelBuilder.ApplyConfiguration(new Configurations.DataSourceConfiguration());
+        modelBuilder.ApplyConfiguration(new Configurations.ReportDefinitionConfiguration());
     }
 
     public override int SaveChanges()
