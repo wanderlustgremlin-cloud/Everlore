@@ -1,6 +1,8 @@
+using Everlore.Application.Common.Interfaces;
 using Everlore.Application.Reporting.DataSources;
 using Everlore.QueryEngine.Caching;
 using Everlore.QueryEngine.Connections;
+using Everlore.QueryEngine.Schema;
 using Microsoft.Extensions.DependencyInjection;
 using Polly;
 using Polly.Registry;
@@ -27,6 +29,10 @@ public static class DependencyInjection
 
         // Cache
         services.AddSingleton<IQueryCacheService, DistributedQueryCacheService>();
+
+        // Schema discovery
+        services.AddSingleton<SchemaIntrospectorFactory>();
+        services.AddScoped<ISchemaService, SchemaService>();
 
         // Resilience pipeline
         services.AddResiliencePipeline("external-db", builder =>

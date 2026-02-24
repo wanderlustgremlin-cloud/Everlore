@@ -1,5 +1,6 @@
 using Everlore.Application.Common.Models;
 using Everlore.Application.Reporting.DataSources;
+using Everlore.Application.Reporting.Schema;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -50,6 +51,20 @@ public class DataSourcesController(ISender sender) : ApiControllerBase
     public async Task<IActionResult> TestConnection(Guid id, CancellationToken ct)
     {
         var result = await sender.Send(new TestDataSourceConnectionCommand(id), ct);
+        return result.IsSuccess ? Ok(result.Value) : ToError(result);
+    }
+
+    [HttpGet("{id:guid}/schema")]
+    public async Task<IActionResult> GetSchema(Guid id, CancellationToken ct)
+    {
+        var result = await sender.Send(new GetSchemaQuery(id), ct);
+        return result.IsSuccess ? Ok(result.Value) : ToError(result);
+    }
+
+    [HttpPost("{id:guid}/schema/refresh")]
+    public async Task<IActionResult> RefreshSchema(Guid id, CancellationToken ct)
+    {
+        var result = await sender.Send(new RefreshSchemaCommand(id), ct);
         return result.IsSuccess ? Ok(result.Value) : ToError(result);
     }
 }
