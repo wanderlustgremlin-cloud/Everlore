@@ -16,6 +16,7 @@
     <ProjectReference Include="..\Everlore.ServiceDefaults\Everlore.ServiceDefaults.csproj" />
     <ProjectReference Include="..\Everlore.Infrastructure.Postgres\Everlore.Infrastructure.Postgres.csproj" />
     <ProjectReference Include="..\Everlore.Application\Everlore.Application.csproj" />
+    <ProjectReference Include="..\Everlore.QueryEngine\Everlore.QueryEngine.csproj" />
   </ItemGroup>
 
 </Project>

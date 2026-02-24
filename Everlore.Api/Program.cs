@@ -5,6 +5,7 @@ using Everlore.Api.Middleware;
 using Everlore.Application;
 using Everlore.Infrastructure.Auth;
 using Everlore.Infrastructure.Postgres;
+using Everlore.QueryEngine;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
@@ -19,6 +20,7 @@ var catalogConnectionString = builder.Configuration.GetConnectionString("everlor
 
 builder.Services.AddApplication();
 builder.Services.AddPostgresInfrastructure(catalogConnectionString);
+builder.Services.AddQueryEngine();
 
 // JWT settings
 var jwtSection = builder.Configuration.GetSection("Jwt");
