@@ -6,6 +6,7 @@ using Everlore.Application;
 using Everlore.Infrastructure.Auth;
 using Everlore.Infrastructure.Postgres;
 using Everlore.QueryEngine;
+using Everlore.QueryEngine.GraphQL;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
@@ -103,6 +104,12 @@ builder.Services.AddControllers(options =>
 {
     options.Filters.Add<FluentValidationFilter>();
 });
+builder.Services
+    .AddGraphQLServer()
+    .AddQueryType<DynamicQueryType>()
+    .AddType<DynamicRowType>()
+    .AddType<SchemaInfoType>()
+    .AddAuthorization();
 builder.Services.AddOpenApi();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -152,5 +159,6 @@ app.UseRateLimiter();
 app.UseMiddleware<TenantRequiredMiddleware>();
 
 app.MapControllers();
+app.MapGraphQL("/graphql").RequireAuthorization();
 
 app.Run();

@@ -17,7 +17,7 @@ public class TenantRequiredMiddleware(RequestDelegate next)
     {
         var path = context.Request.Path.Value ?? string.Empty;
 
-        if (!path.StartsWith("/api/", StringComparison.OrdinalIgnoreCase) || IsExempt(path))
+        if (!RequiresTenantContext(path) || IsExempt(path))
         {
             await next(context);
             return;
@@ -44,6 +44,13 @@ public class TenantRequiredMiddleware(RequestDelegate next)
         }
 
         await next(context);
+    }
+
+    private static bool RequiresTenantContext(string path)
+    {
+        return path.StartsWith("/api/", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith("/graphql", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith("/hubs/", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool IsExempt(string path)

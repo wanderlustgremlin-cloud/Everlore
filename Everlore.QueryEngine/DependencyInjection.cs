@@ -3,6 +3,7 @@ using Everlore.Application.Reporting.DataSources;
 using Everlore.QueryEngine.Caching;
 using Everlore.QueryEngine.Connections;
 using Everlore.QueryEngine.Execution;
+using Everlore.QueryEngine.GraphQL;
 using Everlore.QueryEngine.Schema;
 using Everlore.QueryEngine.Translation;
 using Microsoft.Extensions.DependencyInjection;
@@ -40,6 +41,9 @@ public static class DependencyInjection
         services.AddSingleton<SqlTranslatorFactory>();
         services.AddScoped<Execution.IQueryExecutionService, QueryExecutionService>();
         services.AddScoped<Application.Common.Interfaces.IQueryExecutionService, QueryExecutionServiceAdapter>();
+
+        // GraphQL
+        services.AddScoped<DynamicQueryResolver>();
 
         // Resilience pipeline
         services.AddResiliencePipeline("external-db", builder =>
