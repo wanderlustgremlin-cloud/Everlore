@@ -7,6 +7,9 @@ var postgres = builder.AddPostgres("postgres")
 var everloredb = postgres.AddDatabase("everloredb");
 var everloretenantdb = postgres.AddDatabase("everloretenantdb");
 
+var cache = builder.AddGarnet("cache")
+    .WithDataVolume();
+
 var migrations = builder.AddProject<Projects.Everlore_MigrationService>("migrations")
     .WithReference(everloredb)
     .WithReference(everloretenantdb)
@@ -20,11 +23,13 @@ var sync = builder.AddProject<Projects.Everlore_SyncService>("sync")
 
 builder.AddProject<Projects.Everlore_Api>("everlore-api")
     .WithReference(everloredb)
+    .WithReference(cache)
     .WithEnvironment("Jwt__SigningKey", jwtSigningKey)
     .WithEnvironment("Jwt__Issuer", "Everlore")
     .WithEnvironment("Jwt__Audience", "Everlore")
     .WithEnvironment("Jwt__ExpirationMinutes", "60")
     .WithEnvironment("Registration__Mode", "Open")
-    .WaitForCompletion(sync);
+    .WaitForCompletion(sync)
+    .WaitFor(cache);
 
 builder.Build().Run();

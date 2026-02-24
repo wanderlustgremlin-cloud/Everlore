@@ -20,6 +20,7 @@ var catalogConnectionString = builder.Configuration.GetConnectionString("everlor
 
 builder.Services.AddApplication();
 builder.Services.AddPostgresInfrastructure(catalogConnectionString);
+builder.AddRedisDistributedCache("cache");
 builder.Services.AddQueryEngine();
 
 // JWT settings
