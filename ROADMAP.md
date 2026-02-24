@@ -115,6 +115,8 @@ The core product. Users connect to external databases, browse schemas, build que
 - [x] Polly resilience: retry (3 attempts, exponential backoff), circuit breaker (50% failure ratio, 30s break), 30s timeout
 - [x] Garnet (Redis-compatible) cache via Aspire with data volume
 - [x] TenantRequiredMiddleware expanded to guard /graphql and /hubs paths
+- [x] Serilog structured logging: Console sink + dual OTLP sinks (Aspire Dashboard + SigNoz)
+- [x] SigNoz observability stack as Aspire container resources (ClickHouse, OTel Collector, Query Service, Frontend)
 
 ### 2.8 Export — not started
 - CSV and Excel export from query results
@@ -284,6 +286,8 @@ The query model and execution engine from Phase 2 are the single most important 
 |-------|-----------|
 | Domain & API | .NET 10, ASP.NET Core, Entity Framework Core |
 | Query Engine | Dapper, HotChocolate (GraphQL), Polly |
+| Logging | Serilog (structured logging, OTLP export) |
+| Observability | SigNoz (self-hosted), OpenTelemetry, Aspire Dashboard |
 | Cache | Garnet (Redis-compatible) via Aspire |
 | Real-time | SignalR with Redis backplane |
 | Orchestration | .NET Aspire |
@@ -309,5 +313,5 @@ The query model and execution engine from Phase 2 are the single most important 
 | `Everlore.Connector.Seed` | Deterministic test data generator |
 | `Everlore.SyncService` | Background sync worker |
 | `Everlore.MigrationService` | EF migrations + dev data seeding |
-| `Everlore.AppHost` | Aspire orchestrator (Postgres + Garnet) |
-| `Everlore.ServiceDefaults` | Shared Aspire config |
+| `Everlore.AppHost` | Aspire orchestrator (Postgres + Garnet + SigNoz) |
+| `Everlore.ServiceDefaults` | Shared Aspire config (Serilog, OpenTelemetry) |

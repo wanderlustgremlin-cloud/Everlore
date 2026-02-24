@@ -8,8 +8,6 @@ var builder = Host.CreateApplicationBuilder(args);
 
 builder.AddServiceDefaults();
 
-builder.Logging.AddFilter("Microsoft.EntityFrameworkCore.Database.Command", LogLevel.Critical);
-
 var catalogConnectionString = builder.Configuration.GetConnectionString("everloredb")
     ?? throw new InvalidOperationException("Connection string 'everloredb' not found.");
 

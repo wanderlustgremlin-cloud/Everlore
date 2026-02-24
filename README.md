@@ -22,6 +22,8 @@ Everlore is a self-hostable BI tool designed for companies that want Power BI-st
 |-------|-----------|
 | Domain & API | .NET 10, ASP.NET Core, Entity Framework Core |
 | Orchestration | .NET Aspire |
+| Logging | Serilog (structured logging, OTLP export) |
+| Observability | SigNoz (self-hosted) via OpenTelemetry |
 | Database | PostgreSQL (catalog + per-tenant) |
 | Frontend | React, Next.js, TypeScript |
 | AI | Provider-agnostic (OpenAI, Anthropic, Ollama, vLLM) |
@@ -40,8 +42,8 @@ Everlore.slnx
 ├── Everlore.Connector.Seed            # Deterministic test data generator
 ├── Everlore.SyncService               # Background data sync worker
 ├── Everlore.MigrationService          # EF migrations + dev data seeding
-├── Everlore.AppHost                   # .NET Aspire orchestrator (Postgres + Garnet)
-└── Everlore.ServiceDefaults           # Shared Aspire configuration
+├── Everlore.AppHost                   # .NET Aspire orchestrator (Postgres + Garnet + SigNoz)
+└── Everlore.ServiceDefaults           # Shared Aspire configuration (Serilog, OpenTelemetry)
 ```
 
 ### Architecture
@@ -79,11 +81,13 @@ Everlore.slnx
    dotnet run --project Everlore.AppHost
    ```
 
-   This starts Postgres, runs migrations, seeds a dev tenant with test data, and launches the API.
+   This starts Postgres, Garnet, SigNoz (ClickHouse + Collector + Query Service + Frontend), runs migrations, seeds a dev tenant with test data, and launches the API.
 
 4. Open the Aspire dashboard (URL shown in terminal output) to see all services.
 
-5. The API is available with Swagger UI at the everlore-api endpoint.
+5. Open SigNoz at `http://localhost:3301` for logs, traces, and metrics.
+
+6. The API is available with Swagger UI at the everlore-api endpoint.
 
 ### Dev Credentials
 
@@ -124,6 +128,8 @@ Phase 1 (Platform Hardening) is complete. Phase 2 (Reporting API) is in progress
 - Real-time query progress via SignalR
 - Garnet (Redis-compatible) cache for schema and query results
 - Polly resilience (retry + circuit breaker) on external DB connections
+- Serilog structured logging with OTLP export to Aspire Dashboard and SigNoz
+- SigNoz observability stack (ClickHouse, OTel Collector, Query Service, Frontend) as Aspire containers
 
 See [ROADMAP.md](ROADMAP.md) for the full development plan with detailed progress.
 

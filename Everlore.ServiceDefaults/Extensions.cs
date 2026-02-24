@@ -7,6 +7,8 @@ using Microsoft.Extensions.ServiceDiscovery;
 using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
+using Serilog;
+using Serilog.Sinks.OpenTelemetry;
 
 namespace Microsoft.Extensions.Hosting;
 
@@ -20,6 +22,7 @@ public static class Extensions
 
     public static TBuilder AddServiceDefaults<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
     {
+        builder.ConfigureSerilog();
         builder.ConfigureOpenTelemetry();
 
         builder.AddDefaultHealthChecks();
@@ -46,12 +49,6 @@ public static class Extensions
 
     public static TBuilder ConfigureOpenTelemetry<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
     {
-        builder.Logging.AddOpenTelemetry(logging =>
-        {
-            logging.IncludeFormattedMessage = true;
-            logging.IncludeScopes = true;
-        });
-
         builder.Services.AddOpenTelemetry()
             .WithMetrics(metrics =>
             {
@@ -87,12 +84,15 @@ public static class Extensions
             builder.Services.AddOpenTelemetry().UseOtlpExporter();
         }
 
-        // Uncomment the following lines to enable the Azure Monitor exporter (requires the Azure.Monitor.OpenTelemetry.AspNetCore package)
-        //if (!string.IsNullOrEmpty(builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]))
-        //{
-        //    builder.Services.AddOpenTelemetry()
-        //       .UseAzureMonitor();
-        //}
+        var signozEndpoint = builder.Configuration["SIGNOZ_OTLP_ENDPOINT"];
+        if (!string.IsNullOrWhiteSpace(signozEndpoint))
+        {
+            builder.Services.AddOpenTelemetry()
+                .WithTracing(tracing => tracing.AddOtlpExporter("signoz", o =>
+                    o.Endpoint = new Uri(signozEndpoint)))
+                .WithMetrics(metrics => metrics.AddOtlpExporter("signoz", o =>
+                    o.Endpoint = new Uri(signozEndpoint)));
+        }
 
         return builder;
     }
@@ -102,6 +102,53 @@ public static class Extensions
         builder.Services.AddHealthChecks()
             // Add a default liveness check to ensure app is responsive
             .AddCheck("self", () => HealthCheckResult.Healthy(), ["live"]);
+
+        return builder;
+    }
+
+    private static TBuilder ConfigureSerilog<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
+    {
+        var loggerConfig = new LoggerConfiguration()
+            .ReadFrom.Configuration(builder.Configuration)
+            .Enrich.FromLogContext()
+            .Enrich.WithProperty("ServiceName", builder.Environment.ApplicationName);
+
+        loggerConfig.WriteTo.Console(
+            outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {SourceContext}{NewLine}  {Message:lj}{NewLine}{Exception}");
+
+        // OTLP sink → Aspire Dashboard
+        var aspireEndpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"];
+        if (!string.IsNullOrWhiteSpace(aspireEndpoint))
+        {
+            loggerConfig.WriteTo.OpenTelemetry(options =>
+            {
+                options.Endpoint = aspireEndpoint;
+                options.Protocol = OtlpProtocol.Grpc;
+                options.ResourceAttributes = new Dictionary<string, object>
+                {
+                    ["service.name"] = builder.Environment.ApplicationName
+                };
+            });
+        }
+
+        // OTLP sink → SigNoz
+        var signozEndpoint = builder.Configuration["SIGNOZ_OTLP_ENDPOINT"];
+        if (!string.IsNullOrWhiteSpace(signozEndpoint))
+        {
+            loggerConfig.WriteTo.OpenTelemetry(options =>
+            {
+                options.Endpoint = signozEndpoint;
+                options.Protocol = OtlpProtocol.Grpc;
+                options.ResourceAttributes = new Dictionary<string, object>
+                {
+                    ["service.name"] = builder.Environment.ApplicationName
+                };
+            });
+        }
+
+        Log.Logger = loggerConfig.CreateLogger();
+        builder.Logging.ClearProviders();
+        builder.Services.AddSerilog(Log.Logger, dispose: true);
 
         return builder;
     }
