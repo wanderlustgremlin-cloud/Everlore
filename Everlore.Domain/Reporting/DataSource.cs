@@ -7,7 +7,7 @@ public class DataSource : BaseEntity
     public Guid TenantId { get; set; }
     public string Name { get; set; } = string.Empty;
     public DataSourceType Type { get; set; }
-    public string EncryptedConnectionString { get; set; } = string.Empty;
+    public string? EncryptedConnectionString { get; set; }
     public DateTime? SchemaLastRefreshedAt { get; set; }
     public bool IsActive { get; set; } = true;
 }

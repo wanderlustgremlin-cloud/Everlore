@@ -35,12 +35,12 @@ public static class DependencyInjection
 
         // Schema discovery
         services.AddSingleton<SchemaIntrospectorFactory>();
-        services.AddScoped<ISchemaService, SchemaService>();
+        services.AddScoped<SchemaService>();
 
         // Query translation + execution
         services.AddSingleton<SqlTranslatorFactory>();
         services.AddScoped<Execution.IQueryExecutionService, QueryExecutionService>();
-        services.AddScoped<Application.Common.Interfaces.IQueryExecutionService, QueryExecutionServiceAdapter>();
+        services.AddScoped<QueryExecutionServiceAdapter>();
 
         // GraphQL
         services.AddScoped<DynamicQueryResolver>();

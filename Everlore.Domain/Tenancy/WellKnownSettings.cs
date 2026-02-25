@@ -12,4 +12,5 @@ public static class WellKnownSettings
     public const string BrandingLogoUrl = "branding.logoUrl";
     public const string QueryCacheTtlSeconds = "query.cacheTtlSeconds";
     public const string QueryMaxRowLimit = "query.maxRowLimit";
+    public const string GatewayEnabled = "gateway.enabled";
 }

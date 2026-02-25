@@ -118,7 +118,24 @@ The core product. Users connect to external databases, browse schemas, build que
 - [x] Serilog structured logging: Console sink + dual OTLP sinks (Aspire Dashboard + SigNoz)
 - [x] SigNoz observability stack as Aspire container resources (ClickHouse, OTel Collector, Query Service, Frontend)
 
-### 2.8 Export — not started
+### 2.8 Gateway Agent System ✅
+- [x] `HostingMode` enum on Tenant: `SaasHosted` (default) or `SelfHosted`
+- [x] `GatewayApiKey` entity with SHA-256 key hash, prefix, expiry, revocation
+- [x] API key management: generate, list, revoke endpoints on TenantsController
+- [x] `GatewayHub` at `/hubs/gateway` for agent-to-server SignalR communication
+- [x] `GatewayConnectionTracker`: singleton tracking online agents per tenant
+- [x] `GatewayResponseCorrelator`: request-response correlation over SignalR with timeout
+- [x] `GatewayApiKeyValidator`: validates API key, checks revoked/expired status
+- [x] Routing decorators (`GatewayQueryExecutionService`, `GatewaySchemaService`): check tenant's HostingMode, route SelfHosted queries through gateway agent
+- [x] `Everlore.Gateway` worker project: connects outbound to API, executes queries locally via QueryEngine
+- [x] `Everlore.Gateway.Contracts` shared message types (execute query, discover schema, heartbeat)
+- [x] Gateway status endpoint: `GET /api/tenants/{id}/gateway-status` (online/offline, version, health)
+- [x] Aspire integration: gateway agent as Aspire project with dev seeded self-hosted tenant
+- [x] Heartbeat monitoring with health status based on heartbeat freshness
+- [ ] Full GraphQL gateway routing (follow-up: currently REST query API only for self-hosted)
+- [ ] Tenant DB CRUD proxying for on-prem business data storage (follow-up)
+
+### 2.9 Export — not started
 - CSV and Excel export from query results
 - PDF export as a later addition
 
@@ -309,7 +326,9 @@ The query model and execution engine from Phase 2 are the single most important 
 | `Everlore.Infrastructure` | EF configs, repos, auth, tenancy (provider-agnostic) |
 | `Everlore.Infrastructure.Postgres` | Npgsql, migrations, Postgres-specific DI |
 | `Everlore.QueryEngine` | External DB connections, SQL translation, schema discovery, GraphQL resolvers |
-| `Everlore.Api` | ASP.NET Core controllers, filters, middleware, SignalR hub |
+| `Everlore.Api` | ASP.NET Core controllers, filters, middleware, SignalR hubs, gateway routing |
+| `Everlore.Gateway.Contracts` | Shared message types for gateway agent communication |
+| `Everlore.Gateway` | Self-hosted gateway agent (outbound SignalR, local QueryEngine) |
 | `Everlore.Connector.Seed` | Deterministic test data generator |
 | `Everlore.SyncService` | Background sync worker |
 | `Everlore.MigrationService` | EF migrations + dev data seeding |

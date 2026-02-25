@@ -49,7 +49,7 @@ var sync = builder.AddProject<Projects.Everlore_SyncService>("sync")
     .WaitForCompletion(migrations)
     .WaitFor(signozCollector);
 
-builder.AddProject<Projects.Everlore_Api>("everlore-api")
+var api = builder.AddProject<Projects.Everlore_Api>("everlore-api")
     .WithReference(everloredb)
     .WithReference(cache)
     .WithEnvironment("Jwt__SigningKey", jwtSigningKey)
@@ -60,6 +60,13 @@ builder.AddProject<Projects.Everlore_Api>("everlore-api")
     .WithEnvironment("SIGNOZ_OTLP_ENDPOINT", signozCollector.GetEndpoint("grpc"))
     .WaitForCompletion(sync)
     .WaitFor(cache)
+    .WaitFor(signozCollector);
+
+builder.AddProject<Projects.Everlore_Gateway>("gateway")
+    .WithEnvironment("Gateway__ServerUrl", api.GetEndpoint("https"))
+    .WithEnvironment("Gateway__ApiKey", "dev-gateway-key")
+    .WithEnvironment("SIGNOZ_OTLP_ENDPOINT", signozCollector.GetEndpoint("grpc"))
+    .WaitFor(api)
     .WaitFor(signozCollector);
 
 builder.Build().Run();

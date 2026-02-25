@@ -11,7 +11,8 @@ public record CreateTenantCommand(
     string Name,
     string Identifier,
     string? ConnectionString = null,
-    bool IsActive = true) : IRequest<Result<TenantDto>>;
+    bool IsActive = true,
+    HostingMode HostingMode = HostingMode.SaasHosted) : IRequest<Result<TenantDto>>;
 
 public class CreateTenantValidator : AbstractValidator<CreateTenantCommand>
 {
@@ -36,10 +37,14 @@ public class CreateTenantHandler(
         if (exists)
             return Result.Failure<TenantDto>(ResultErrorType.Conflict, $"Tenant with identifier '{request.Identifier}' already exists.");
 
-        var connectionString = request.ConnectionString;
-        if (string.IsNullOrWhiteSpace(connectionString))
+        string? connectionString = null;
+        if (request.HostingMode == HostingMode.SaasHosted)
         {
-            connectionString = await provisioner.ProvisionAsync(request.Identifier, cancellationToken);
+            connectionString = request.ConnectionString;
+            if (string.IsNullOrWhiteSpace(connectionString))
+            {
+                connectionString = await provisioner.ProvisionAsync(request.Identifier, cancellationToken);
+            }
         }
 
         var tenant = new Tenant
@@ -48,7 +53,8 @@ public class CreateTenantHandler(
             Name = request.Name,
             Identifier = request.Identifier,
             ConnectionString = connectionString,
-            IsActive = request.IsActive
+            IsActive = request.IsActive,
+            HostingMode = request.HostingMode
         };
 
         db.Tenants.Add(tenant);
