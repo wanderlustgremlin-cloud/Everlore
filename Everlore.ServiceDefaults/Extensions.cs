@@ -77,22 +77,24 @@ public static class Extensions
 
     private static TBuilder AddOpenTelemetryExporters<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
     {
-        var useOtlpExporter = !string.IsNullOrWhiteSpace(builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]);
-
-        if (useOtlpExporter)
-        {
-            builder.Services.AddOpenTelemetry().UseOtlpExporter();
-        }
-
+        var aspireEndpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"];
         var signozEndpoint = builder.Configuration["SIGNOZ_OTLP_ENDPOINT"];
-        if (!string.IsNullOrWhiteSpace(signozEndpoint))
-        {
-            builder.Services.AddOpenTelemetry()
-                .WithTracing(tracing => tracing.AddOtlpExporter("signoz", o =>
-                    o.Endpoint = new Uri(signozEndpoint)))
-                .WithMetrics(metrics => metrics.AddOtlpExporter("signoz", o =>
-                    o.Endpoint = new Uri(signozEndpoint)));
-        }
+
+        builder.Services.AddOpenTelemetry()
+            .WithTracing(tracing =>
+            {
+                if (!string.IsNullOrWhiteSpace(aspireEndpoint))
+                    tracing.AddOtlpExporter("aspire", o => o.Endpoint = new Uri(aspireEndpoint));
+                if (!string.IsNullOrWhiteSpace(signozEndpoint))
+                    tracing.AddOtlpExporter("signoz", o => o.Endpoint = new Uri(signozEndpoint));
+            })
+            .WithMetrics(metrics =>
+            {
+                if (!string.IsNullOrWhiteSpace(aspireEndpoint))
+                    metrics.AddOtlpExporter("aspire", o => o.Endpoint = new Uri(aspireEndpoint));
+                if (!string.IsNullOrWhiteSpace(signozEndpoint))
+                    metrics.AddOtlpExporter("signoz", o => o.Endpoint = new Uri(signozEndpoint));
+            });
 
         return builder;
     }

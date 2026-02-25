@@ -11,9 +11,24 @@ processors:
     send_batch_size: 10000
     send_batch_max_size: 11000
     timeout: 10s
+  signozspanmetrics/delta:
+    metrics_exporter: signozclickhousemetrics
+    metrics_flush_interval: 60s
+    latency_histogram_buckets: [100us, 1ms, 2ms, 6ms, 10ms, 50ms, 100ms, 250ms, 500ms, 1000ms, 1400ms, 2000ms, 5s, 10s, 20s, 40s, 60s]
+    aggregation_temporality: AGGREGATION_TEMPORALITY_DELTA
+    enable_exp_histogram: true
+    dimensions:
+      - name: service.namespace
+        default: default
+      - name: deployment.environment
+        default: default
 
 connectors:
-  signozspanmetrics/delta: {}
+  signozmeter:
+    metrics_flush_interval: 1h
+    dimensions:
+      - name: service.name
+      - name: deployment.environment
 
 extensions:
   health_check:
@@ -22,11 +37,11 @@ extensions:
 exporters:
   clickhousetraces:
     datasource: tcp://signoz-clickhouse:9000/signoz_traces
+    low_cardinal_exception_grouping: ${env:LOW_CARDINAL_EXCEPTION_GROUPING}
     use_new_schema: true
 
   signozclickhousemetrics:
     dsn: tcp://signoz-clickhouse:9000/signoz_metrics
-    enable_exp_histogram: true
 
   clickhouselogsexporter:
     dsn: tcp://signoz-clickhouse:9000/signoz_logs
@@ -37,22 +52,29 @@ exporters:
     dsn: tcp://signoz-clickhouse:9000/signoz_meter
     timeout: 45s
 
+  metadataexporter:
+    cache:
+      provider: in_memory
+    dsn: tcp://signoz-clickhouse:9000/signoz_metadata
+    enabled: true
+    timeout: 45s
+
 service:
   extensions: [health_check]
   pipelines:
     traces:
       receivers: [otlp]
       processors: [signozspanmetrics/delta, batch]
-      exporters: [clickhousetraces]
+      exporters: [clickhousetraces, metadataexporter, signozmeter]
     metrics:
       receivers: [otlp]
       processors: [batch]
-      exporters: [signozclickhousemetrics]
-    metrics/spanmetrics:
-      receivers: [signozspanmetrics/delta]
-      processors: [batch]
-      exporters: [signozclickhousemetrics]
+      exporters: [signozclickhousemetrics, metadataexporter, signozmeter]
     logs:
       receivers: [otlp]
       processors: [batch]
-      exporters: [clickhouselogsexporter]
+      exporters: [clickhouselogsexporter, metadataexporter, signozmeter]
+    metrics/meter:
+      receivers: [signozmeter]
+      processors: [batch]
+      exporters: [signozclickhousemeter]
