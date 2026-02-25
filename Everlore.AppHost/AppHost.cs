@@ -11,28 +11,44 @@ var cache = builder.AddGarnet("cache")
     .WithDataVolume();
 
 // SigNoz observability stack
-var clickhouse = builder.AddContainer("signoz-clickhouse", "clickhouse/clickhouse-server", "24.1")
-    .WithVolume("signoz-clickhouse-data", "/var/lib/clickhouse")
-    .WithEndpoint(port: 9000, targetPort: 9000, name: "native", scheme: "tcp")
-    .WithEndpoint(port: 8123, targetPort: 8123, name: "http");
+var zookeeper = builder.AddContainer("signoz-zookeeper", "signoz/zookeeper", "3.7.1")
+    .WithVolume("signoz-zookeeper-data", "/bitnami/zookeeper")
+    .WithEnvironment("ALLOW_ANONYMOUS_LOGIN", "yes")
+    .WithEnvironment("ZOO_AUTOPURGE_INTERVAL", "1")
+    .WithEndpoint(port: 2181, targetPort: 2181, name: "client", scheme: "tcp");
 
-var signozCollector = builder.AddContainer("signoz-collector", "signoz/signoz-otel-collector", "0.111.0")
-    .WithBindMount("./signoz/otel-collector-config.yaml", "/etc/otel/config.yaml")
+var clickhouse = builder.AddContainer("signoz-clickhouse", "clickhouse/clickhouse-server", "25.5.6")
+    .WithVolume("signoz-clickhouse-data", "/var/lib/clickhouse")
+    .WithBindMount("./signoz/clickhouse-cluster.xml", "/etc/clickhouse-server/config.d/cluster.xml")
+    .WithEnvironment("CLICKHOUSE_SKIP_USER_SETUP", "1")
+    .WithEndpoint(port: 9000, targetPort: 9000, name: "native", scheme: "tcp")
+    .WithEndpoint(port: 8123, targetPort: 8123, name: "http")
+    .WaitFor(zookeeper);
+
+var signozCollector = builder.AddContainer("signoz-collector", "signoz/signoz-otel-collector", "v0.142.1")
+    .WithEntrypoint("/bin/sh")
+    .WithArgs("-c",
+        "/signoz-otel-collector migrate bootstrap && " +
+        "/signoz-otel-collector migrate sync up && " +
+        "/signoz-otel-collector migrate async up && " +
+        "/signoz-otel-collector --config=/etc/otel-collector-config.yaml")
+    .WithBindMount("./signoz/otel-collector-config.yaml", "/etc/otel-collector-config.yaml")
+    .WithEnvironment("SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_DSN", "tcp://signoz-clickhouse:9000")
+    .WithEnvironment("SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_CLUSTER", "cluster")
+    .WithEnvironment("SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_REPLICATION", "true")
+    .WithEnvironment("LOW_CARDINAL_EXCEPTION_GROUPING", "false")
     .WithEndpoint(port: 4317, targetPort: 4317, name: "grpc")
     .WithEndpoint(port: 4318, targetPort: 4318, name: "http")
     .WaitFor(clickhouse);
 
-var signozQueryService = builder.AddContainer("signoz-query-service", "signoz/query-service", "0.111.0")
-    .WithEndpoint(port: 8080, targetPort: 8080, name: "http")
-    .WithEnvironment("ClickHouseUrl", "tcp://signoz-clickhouse:9000")
-    .WithEnvironment("STORAGE", "clickhouse")
+var signoz = builder.AddContainer("signoz", "signoz/signoz", "v0.112.1")
+    .WithVolume("signoz-sqlite", "/var/lib/signoz")
+    .WithHttpEndpoint(port: 3301, targetPort: 8080, name: "http")
+    .WithEnvironment("SIGNOZ_TELEMETRYSTORE_CLICKHOUSE_DSN", "tcp://signoz-clickhouse:9000")
+    .WithEnvironment("SIGNOZ_SQLSTORE_SQLITE_PATH", "/var/lib/signoz/signoz.db")
+    .WithEnvironment("SIGNOZ_TOKENIZER_JWT_SECRET", "dev-secret")
     .WaitFor(clickhouse)
     .WaitFor(signozCollector);
-
-var signozFrontend = builder.AddContainer("signoz-frontend", "signoz/frontend", "0.111.0")
-    .WithEndpoint(port: 3301, targetPort: 3301, name: "http")
-    .WithEnvironment("FRONTEND_API_ENDPOINT", "http://signoz-query-service:8080")
-    .WaitFor(signozQueryService);
 
 var migrations = builder.AddProject<Projects.Everlore_MigrationService>("migrations")
     .WithReference(everloredb)
