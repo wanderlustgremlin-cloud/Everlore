@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using Everlore.Domain.Tenancy;
 using Everlore.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
@@ -19,6 +21,7 @@ public class MigrationWorker(
 
         var devTenant = await SeedDevTenantAsync(catalogDb, cancellationToken);
         await SeedConnectorConfigAsync(catalogDb, devTenant, cancellationToken);
+        await SeedSelfHostedDevTenantAsync(catalogDb, cancellationToken);
 
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
         await SeedRolesAsync(roleManager);
@@ -58,6 +61,52 @@ public class MigrationWorker(
         }
 
         return devTenant;
+    }
+
+    private static async Task SeedSelfHostedDevTenantAsync(CatalogDbContext catalogDb, CancellationToken cancellationToken)
+    {
+        const string identifier = "dev-selfhosted";
+        const string devGatewayKey = "dev-gateway-key";
+
+        var tenant = await catalogDb.Tenants
+            .FirstOrDefaultAsync(t => t.Identifier == identifier, cancellationToken);
+
+        if (tenant is null)
+        {
+            tenant = new Tenant
+            {
+                Name = "Development (Self-Hosted)",
+                Identifier = identifier,
+                HostingMode = HostingMode.SelfHosted,
+                IsActive = true
+            };
+            catalogDb.Tenants.Add(tenant);
+            await catalogDb.SaveChangesAsync(cancellationToken);
+        }
+        else if (tenant.HostingMode != HostingMode.SelfHosted)
+        {
+            tenant.HostingMode = HostingMode.SelfHosted;
+            tenant.ConnectionString = null;
+            await catalogDb.SaveChangesAsync(cancellationToken);
+        }
+
+        // Seed gateway API key (pre-hashed so the agent can authenticate on startup)
+        var keyHash = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(devGatewayKey)));
+        var existingKey = await catalogDb.GatewayApiKeys
+            .AnyAsync(k => k.TenantId == tenant.Id && k.KeyHash == keyHash, cancellationToken);
+
+        if (!existingKey)
+        {
+            catalogDb.GatewayApiKeys.Add(new GatewayApiKey
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenant.Id,
+                Name = "Dev Gateway Key",
+                KeyHash = keyHash,
+                KeyPrefix = devGatewayKey[..Math.Min(16, devGatewayKey.Length)]
+            });
+            await catalogDb.SaveChangesAsync(cancellationToken);
+        }
     }
 
     private static async Task SeedConnectorConfigAsync(CatalogDbContext catalogDb, Tenant devTenant, CancellationToken cancellationToken)

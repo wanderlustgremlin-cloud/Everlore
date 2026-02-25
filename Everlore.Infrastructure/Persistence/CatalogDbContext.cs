@@ -18,6 +18,7 @@ public class CatalogDbContext : IdentityDbContext<ApplicationUser, IdentityRole<
     public DbSet<TenantSetting> TenantSettings => Set<TenantSetting>();
     public DbSet<DataSource> DataSources => Set<DataSource>();
     public DbSet<ReportDefinition> ReportDefinitions => Set<ReportDefinition>();
+    public DbSet<GatewayApiKey> GatewayApiKeys => Set<GatewayApiKey>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -29,6 +30,7 @@ public class CatalogDbContext : IdentityDbContext<ApplicationUser, IdentityRole<
         modelBuilder.ApplyConfiguration(new Configurations.TenantSettingConfiguration());
         modelBuilder.ApplyConfiguration(new Configurations.DataSourceConfiguration());
         modelBuilder.ApplyConfiguration(new Configurations.ReportDefinitionConfiguration());
+        modelBuilder.ApplyConfiguration(new Configurations.GatewayApiKeyConfiguration());
     }
 
     public override int SaveChanges()

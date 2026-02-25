@@ -1,3 +1,4 @@
+using Everlore.Api.Gateway;
 using Everlore.Application.Common.Models;
 using Everlore.Application.Tenancy;
 using MediatR;
@@ -6,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Everlore.Api.Controllers;
 
-public class TenantsController(ISender sender) : ApiControllerBase
+public class TenantsController(ISender sender, IGatewayConnectionTracker gatewayTracker) : ApiControllerBase
 {
     [HttpGet]
     [Authorize(Roles = "SuperAdmin")]
@@ -94,6 +95,67 @@ public class TenantsController(ISender sender) : ApiControllerBase
     public async Task<IActionResult> DeleteSetting(Guid tenantId, string key, CancellationToken ct)
     {
         var result = await sender.Send(new DeleteTenantSettingCommand(tenantId, key), ct);
+        return result.IsSuccess ? NoContent() : ToError(result);
+    }
+    // --- Gateway Status ---
+
+    [HttpGet("{tenantId:guid}/gateway-status")]
+    [Authorize(Roles = "SuperAdmin,Admin")]
+    public IActionResult GetGatewayStatus(Guid tenantId)
+    {
+        var agentInfo = gatewayTracker.GetAgentInfo(tenantId);
+
+        if (agentInfo is null)
+        {
+            return Ok(new
+            {
+                IsOnline = false,
+                AgentVersion = (string?)null,
+                ConnectedAt = (DateTime?)null,
+                LastHeartbeatAt = (DateTime?)null,
+                AvailableDataSourceIds = Array.Empty<Guid>()
+            });
+        }
+
+        var heartbeatAge = DateTime.UtcNow - agentInfo.LastHeartbeatAt;
+        var isHealthy = heartbeatAge.TotalSeconds < 60; // 2x heartbeat interval
+
+        return Ok(new
+        {
+            IsOnline = true,
+            agentInfo.AgentVersion,
+            agentInfo.ConnectedAt,
+            agentInfo.LastHeartbeatAt,
+            IsHealthy = isHealthy,
+            agentInfo.AvailableDataSourceIds
+        });
+    }
+
+    // --- Gateway API Keys ---
+
+    [HttpPost("{tenantId:guid}/gateway-keys")]
+    [Authorize(Roles = "SuperAdmin,Admin")]
+    public async Task<IActionResult> GenerateGatewayKey(
+        Guid tenantId, GenerateGatewayApiKeyCommand command, CancellationToken ct)
+    {
+        if (tenantId != command.TenantId) return BadRequest();
+        var result = await sender.Send(command, ct);
+        return result.IsSuccess ? Ok(result.Value) : ToError(result);
+    }
+
+    [HttpGet("{tenantId:guid}/gateway-keys")]
+    [Authorize(Roles = "SuperAdmin,Admin")]
+    public async Task<IActionResult> ListGatewayKeys(Guid tenantId, CancellationToken ct)
+    {
+        var result = await sender.Send(new ListGatewayApiKeysQuery(tenantId), ct);
+        return result.IsSuccess ? Ok(result.Value) : ToError(result);
+    }
+
+    [HttpDelete("{tenantId:guid}/gateway-keys/{keyId:guid}")]
+    [Authorize(Roles = "SuperAdmin,Admin")]
+    public async Task<IActionResult> RevokeGatewayKey(Guid tenantId, Guid keyId, CancellationToken ct)
+    {
+        var result = await sender.Send(new RevokeGatewayApiKeyCommand(tenantId, keyId), ct);
         return result.IsSuccess ? NoContent() : ToError(result);
     }
 }

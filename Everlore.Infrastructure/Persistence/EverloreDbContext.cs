@@ -46,7 +46,8 @@ public class EverloreDbContext : DbContext
                  && type != typeof(Configurations.TenantUserConfiguration)
                  && type != typeof(Configurations.TenantSettingConfiguration)
                  && type != typeof(Configurations.DataSourceConfiguration)
-                 && type != typeof(Configurations.ReportDefinitionConfiguration));
+                 && type != typeof(Configurations.ReportDefinitionConfiguration)
+                 && type != typeof(Configurations.GatewayApiKeyConfiguration));
     }
 
     public override int SaveChanges()

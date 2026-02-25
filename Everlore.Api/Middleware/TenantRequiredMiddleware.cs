@@ -10,7 +10,8 @@ public class TenantRequiredMiddleware(RequestDelegate next)
     private static readonly HashSet<string> ExemptPrefixes = new(StringComparer.OrdinalIgnoreCase)
     {
         "/api/auth",
-        "/api/tenants"
+        "/api/tenants",
+        "/hubs/gateway"
     };
 
     public async Task InvokeAsync(HttpContext context)

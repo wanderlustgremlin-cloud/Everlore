@@ -35,7 +35,6 @@ namespace Everlore.Infrastructure.Postgres.Migrations.Catalog
                         .HasColumnType("uuid");
 
                     b.Property<string>("EncryptedConnectionString")
-                        .IsRequired()
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
 
@@ -242,6 +241,61 @@ namespace Everlore.Infrastructure.Postgres.Migrations.Catalog
                     b.ToTable("ConnectorConfigurations");
                 });
 
+            modelBuilder.Entity("Everlore.Domain.Tenancy.GatewayApiKey", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsRevoked")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("KeyHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("KeyPrefix")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<DateTime?>("LastUsedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("KeyHash")
+                        .IsUnique();
+
+                    b.HasIndex("TenantId");
+
+                    b.ToTable("GatewayApiKeys");
+                });
+
             modelBuilder.Entity("Everlore.Domain.Tenancy.Tenant", b =>
                 {
                     b.Property<Guid>("Id")
@@ -249,7 +303,6 @@ namespace Everlore.Infrastructure.Postgres.Migrations.Catalog
                         .HasColumnType("uuid");
 
                     b.Property<string>("ConnectionString")
-                        .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
@@ -258,6 +311,13 @@ namespace Everlore.Infrastructure.Postgres.Migrations.Catalog
 
                     b.Property<Guid?>("CreatedBy")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("HostingMode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("SaasHosted");
 
                     b.Property<string>("Identifier")
                         .IsRequired()
@@ -517,6 +577,17 @@ namespace Everlore.Infrastructure.Postgres.Migrations.Catalog
                 {
                     b.HasOne("Everlore.Domain.Tenancy.Tenant", "Tenant")
                         .WithMany("ConnectorConfigurations")
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("Everlore.Domain.Tenancy.GatewayApiKey", b =>
+                {
+                    b.HasOne("Everlore.Domain.Tenancy.Tenant", "Tenant")
+                        .WithMany()
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();

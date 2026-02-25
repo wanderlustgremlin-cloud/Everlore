@@ -11,5 +11,6 @@ public interface ICatalogDbContext
     DbSet<TenantSetting> TenantSettings { get; }
     DbSet<DataSource> DataSources { get; }
     DbSet<ReportDefinition> ReportDefinitions { get; }
+    DbSet<GatewayApiKey> GatewayApiKeys { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

@@ -6,9 +6,12 @@ using Everlore.Application;
 using Everlore.Infrastructure.Auth;
 using Everlore.Infrastructure.Postgres;
 using Everlore.Api.Hubs;
+using Everlore.Api.Gateway;
+using Everlore.Application.Common.Interfaces;
 using Everlore.QueryEngine;
 using Everlore.QueryEngine.Execution;
 using Everlore.QueryEngine.GraphQL;
+using Everlore.QueryEngine.Schema;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
@@ -25,6 +28,24 @@ builder.Services.AddApplication();
 builder.Services.AddPostgresInfrastructure(catalogConnectionString);
 builder.AddRedisDistributedCache("cache");
 builder.Services.AddQueryEngine();
+
+// Gateway routing decorators (wrap QueryEngine concrete types)
+builder.Services.AddScoped<ISchemaService>(sp =>
+    new GatewaySchemaService(
+        sp.GetRequiredService<SchemaService>(),
+        sp.GetRequiredService<ICatalogDbContext>(),
+        sp.GetRequiredService<IGatewayConnectionTracker>(),
+        sp.GetRequiredService<IGatewayResponseCorrelator>(),
+        sp.GetRequiredService<Microsoft.AspNetCore.SignalR.IHubContext<GatewayHub, Everlore.Gateway.Contracts.IGatewayHubClient>>(),
+        sp.GetRequiredService<ILogger<GatewaySchemaService>>()));
+builder.Services.AddScoped<Everlore.Application.Common.Interfaces.IQueryExecutionService>(sp =>
+    new GatewayQueryExecutionService(
+        sp.GetRequiredService<QueryExecutionServiceAdapter>(),
+        sp.GetRequiredService<ICatalogDbContext>(),
+        sp.GetRequiredService<IGatewayConnectionTracker>(),
+        sp.GetRequiredService<IGatewayResponseCorrelator>(),
+        sp.GetRequiredService<Microsoft.AspNetCore.SignalR.IHubContext<GatewayHub, Everlore.Gateway.Contracts.IGatewayHubClient>>(),
+        sp.GetRequiredService<ILogger<GatewayQueryExecutionService>>()));
 
 // JWT settings
 var jwtSection = builder.Configuration.GetSection("Jwt");
@@ -121,9 +142,17 @@ builder.Services.AddControllers(options =>
 {
     options.Filters.Add<FluentValidationFilter>();
 });
+// Gateway infrastructure
+builder.Services.AddSingleton<IGatewayConnectionTracker, GatewayConnectionTracker>();
+builder.Services.AddSingleton<IGatewayResponseCorrelator, GatewayResponseCorrelator>();
+builder.Services.AddScoped<IGatewayApiKeyValidator, GatewayApiKeyValidator>();
+
 // SignalR
 var cacheConnectionString = builder.Configuration.GetConnectionString("cache");
-var signalRBuilder = builder.Services.AddSignalR();
+var signalRBuilder = builder.Services.AddSignalR(options =>
+{
+    options.MaximumReceiveMessageSize = 1024 * 1024; // 1 MB for gateway query results
+});
 if (!string.IsNullOrWhiteSpace(cacheConnectionString))
 {
     signalRBuilder.AddStackExchangeRedis(cacheConnectionString);
@@ -187,5 +216,6 @@ app.UseMiddleware<TenantRequiredMiddleware>();
 app.MapControllers();
 app.MapGraphQL("/graphql").RequireAuthorization();
 app.MapHub<QueryHub>("/hubs/query");
+app.MapHub<GatewayHub>("/hubs/gateway");
 
 app.Run();

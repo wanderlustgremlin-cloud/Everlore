@@ -39,10 +39,12 @@ Everlore.slnx
 ├── Everlore.Infrastructure.Postgres   # Npgsql provider, EF migrations
 ├── Everlore.QueryEngine               # External DB connections, SQL translation, schema discovery, GraphQL
 ├── Everlore.Api                       # ASP.NET Core controllers, filters, middleware, SignalR
+├── Everlore.Gateway.Contracts         # Shared message types for gateway agent communication
+├── Everlore.Gateway                   # Self-hosted gateway agent (outbound SignalR to API)
 ├── Everlore.Connector.Seed            # Deterministic test data generator
 ├── Everlore.SyncService               # Background data sync worker
 ├── Everlore.MigrationService          # EF migrations + dev data seeding
-├── Everlore.AppHost                   # .NET Aspire orchestrator (Postgres + Garnet + SigNoz)
+├── Everlore.AppHost                   # .NET Aspire orchestrator (Postgres + Garnet + SigNoz + Gateway)
 └── Everlore.ServiceDefaults           # Shared Aspire configuration (Serilog, OpenTelemetry)
 ```
 
@@ -118,7 +120,7 @@ Phase 1 (Platform Hardening) is complete. Phase 2 (Reporting API) is in progress
 - JWT authentication with role-based authorization
 - Security hardening: tenant isolation guard, header spoofing prevention, rate limiting on auth, security headers, config-driven registration
 
-**Phase 2 — In Progress:**
+**Phase 2 — Complete (except export):**
 - DataSource and ReportDefinition entities in catalog DB with full CRUD API
 - Connection string encryption via ASP.NET Data Protection API
 - Connection test endpoint for verifying data source connectivity
@@ -130,13 +132,14 @@ Phase 1 (Platform Hardening) is complete. Phase 2 (Reporting API) is in progress
 - Polly resilience (retry + circuit breaker) on external DB connections
 - Serilog structured logging with OTLP export to Aspire Dashboard and SigNoz
 - SigNoz observability stack (ClickHouse, OTel Collector, Query Service, Frontend) as Aspire containers
+- **Gateway agent system** for querying customer databases on remote networks via outbound SignalR
 
 See [ROADMAP.md](ROADMAP.md) for the full development plan with detailed progress.
 
 ## Roadmap
 
 1. **Platform Hardening** — Pagination, filtering, cursor pagination, correlation IDs, audit trail, tenant provisioning, tenant settings *(complete)*
-2. **Reporting API & Ad-Hoc Query Engine** — Data sources, schema discovery, query model, SQL translation, GraphQL, SignalR *(in progress)*
+2. **Reporting API & Ad-Hoc Query Engine** — Data sources, schema discovery, query model, SQL translation, GraphQL, SignalR, gateway agent *(complete except export)*
 3. **Frontend & Dashboard Builder** — React/Next.js report builder, dashboards, interactive filtering
 4. **AI Integration** — Provider abstraction, natural language to query, data-aware chat
 5. **Data Pipeline & Connectors** — Connector SDK, QuickBooks/Xero, scheduled sync

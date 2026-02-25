@@ -22,4 +22,8 @@
   <Folder Name="/QueryEngine/">
     <Project Path="Everlore.QueryEngine/Everlore.QueryEngine.csproj" />
   </Folder>
+  <Folder Name="/Gateway/">
+    <Project Path="Everlore.Gateway/Everlore.Gateway.csproj" />
+    <Project Path="Everlore.Gateway.Contracts/Everlore.Gateway.Contracts.csproj" />
+  </Folder>
 </Solution>
