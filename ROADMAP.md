@@ -143,6 +143,7 @@ The core product. Users connect to external databases, browse schemas, build que
 ### 2.9 Export — not started
 - CSV and Excel export from query results
 - PDF export as a later addition
+- **Gateway note:** Export serializes query results that are already gateway-routed — no additional gateway work needed, but large result sets may need streaming/chunking over SignalR to avoid the 1MB message limit
 
 ---
 
@@ -208,12 +209,14 @@ Two tracks: bring-your-own AI provider, and an in-app AI that understands the te
 - AI translates natural language into the query model from Phase 2
 - The execution engine runs it, results render as a chart or table inline
 - The query model is the backbone — AI is a translation layer on top of it
+- **Gateway note:** No additional gateway work — AI translates to the query model, which is already gateway-routed through `GatewayQueryExecutionService`. Schema context for prompt building uses `ISchemaService` which is also gateway-routed
 
 ### 4.3 Data-Aware Chat
 - AI has context about the tenant's connected schemas, data relationships, and recent results
 - Can answer analytical questions: "Why did revenue drop in March?", "Who are our top 5 vendors by spend?"
 - Suggests follow-up queries based on what the user is exploring
 - In-app chat interface alongside dashboards and reports
+- **Gateway note:** Schema discovery and query execution are already gateway-routed. Embedding generation (if needed for RAG) would need a decision: run embeddings centrally against query results already fetched, or add an `Embed` gateway message for on-prem embedding with self-hosted models
 
 ### 4.4 External CLI / Tool Support
 - Users can bring whatever CLI tool they want and integrate it with Everlore
@@ -237,28 +240,42 @@ Real-world data ingestion. Deferred because the seed connector handles dev/test 
 - Support for incremental sync: last-modified cursors, pagination tokens, high-water marks
 - Built-in error reporting, retry logic, and rate limiting
 - Each connector is also exposed as a data source for the report builder
+- **Gateway note:** For SelfHosted tenants, connectors write into the on-prem tenant DB. The connector runtime must run on the gateway agent — ship connector assemblies to the agent (or embed common ones) and trigger execution via a `GatewayExecuteSyncRequest` message. The central API never touches the tenant's raw data; it only receives sync status/metrics back
 
 ### 5.2 Real-World Connectors
 - QuickBooks Online and Xero as first targets (AP/AR/Inventory domain fit)
 - OAuth integration flows for each provider
 - CSV/Excel bulk import connector for users migrating data
+- **Gateway note:** OAuth is tricky for SelfHosted — the OAuth callback URL must be the central API (publicly reachable), which stores the tokens in the catalog DB. The gateway agent then receives tokens as part of the sync job request. For CSV/Excel import, the file upload hits the central API, which forwards the payload to the agent via a `GatewayImportRequest` or streams it in chunks
 
 ### 5.3 Scheduled Sync
 - Recurring sync jobs configurable per connector per tenant
 - Sync intervals: manual, hourly, daily, custom cron
 - Replace one-shot SyncService with a durable job system
 
+**Scheduling architecture — central scheduler, gateway-routed execution:**
+- A single `Everlore.Scheduler` worker project (Quartz.NET or Hangfire) owns all job definitions and scheduling logic, stored in the catalog DB
+- **SaasHosted tenants**: scheduler executes jobs directly (has DB access)
+- **SelfHosted tenants**: scheduler sends `GatewayExecuteJobRequest` through SignalR to the gateway agent, which executes locally and reports results back via `GatewayExecuteJobResponse`
+- This follows the same decorator pattern as `GatewayQueryExecutionService`, `GatewayExploreService`, and `GatewayRepository<T>` — a `GatewayJobExecutionService` decorator routes by `HostingMode`
+- The gateway agent gets a `JobHandler` that composes existing handlers (QueryEngine, CrudHandler, ExploreHandler) to fulfill job types (run report, sync data, compute metrics)
+- Contract messages: `GatewayExecuteJobRequest` / `GatewayExecuteJobResponse` added to `Everlore.Gateway.Contracts`
+- Hub methods: `ExecuteJob` / `SendJobResult` on the existing `GatewayHub`
+- **Do NOT put a local scheduler on the gateway agent** — it creates two scheduling systems, job definition drift, split management UI, and complicated retry semantics. If offline job execution becomes a requirement later, revisit then
+
 ### 5.4 Sync Observability
 - Track last sync time, record counts, errors per connector per tenant
 - Sync history log with success/failure details
 - Expose via API and surface in the frontend admin UI
 - Data freshness indicators on dashboards
+- **Gateway note:** The gateway agent reports sync status, row counts, and errors back to the central API as part of the job response. The catalog DB stores all observability data centrally regardless of hosting mode — the agent never needs its own observability store
 
 ### 5.5 Pre-Computed Metrics
 - KPIs that auto-calculate on sync completion for the canonical model
 - Days Sales Outstanding, Days Payable Outstanding, Inventory Turnover
 - Gross Margin, Revenue by period, Aging buckets
 - Time-series snapshots: capture KPI values at regular intervals for trend analysis
+- **Gateway note:** Metric computation reads from the tenant DB and writes computed results back to it. For SelfHosted, this runs on the gateway agent as a post-sync job step. Computed metric values should also be reported back to the catalog DB (or a central metrics store) so dashboards can render without requiring the agent to be online for every page load
 
 ---
 
@@ -270,21 +287,25 @@ Differentiators that move Everlore from a reporting tool to a full BI platform.
 - Email a PDF or CSV of a report on a configurable schedule (daily, weekly, monthly)
 - Recipients list per scheduled report
 - Useful for executives and stakeholders who don't log into the app
+- Depends on the central scheduler from Phase 5.3 — report jobs are another job type routed through the gateway for SelfHosted tenants
 
 ### 6.2 Threshold Alerts
 - Rule-based notifications: "Alert me when DSO exceeds 45 days"
 - Configurable per metric, per tenant, per user
 - Delivery via email, in-app notification, or webhook
+- Alert evaluation runs as scheduled jobs via the central scheduler (Phase 5.3), gateway-routed for SelfHosted tenants
 
 ### 6.3 Anomaly Detection
 - Flag metrics that deviate significantly from their historical trend
 - Statistical approach: z-score against rolling average (no ML required)
 - Surface anomalies in dashboards and via alerts
+- **Gateway note:** If pre-computed metrics (5.5) are replicated to the catalog DB, anomaly detection can run centrally against the replicated values without needing the agent online. Otherwise, anomaly checks are another scheduled job type gateway-routed per Phase 5.3
 
 ### 6.4 Forecasting
 - Simple trend extrapolation (linear regression) for revenue, cash flow, inventory levels
 - Visual overlay on time-series charts: actual vs. forecast
 - High perceived value for relatively low implementation cost
+- **Gateway note:** Same as anomaly detection — runs against replicated metric time-series if available centrally, or gateway-routed as a job if not
 
 ### 6.5 Embeddable Widgets
 - Let tenants embed a chart or KPI card in their own tools
@@ -302,6 +323,15 @@ The query model and execution engine from Phase 2 are the single most important 
 - **Connectors** are just another data source the engine can query
 - **Exports** serialize query results
 - **Dashboards** are collections of saved query models with layout metadata
+
+### Gateway Routing Is a Cross-Cutting Concern
+Every feature that touches tenant data must account for the SaasHosted/SelfHosted split. The established pattern is:
+1. Define an **interface** in `Everlore.Application` (e.g., `IExploreService`, `IRepository<T>`)
+2. Implement a **local service** that works directly (Dapper, EF Core)
+3. Implement a **gateway decorator** that checks `HostingMode` and routes SelfHosted tenants through SignalR
+4. Add **contract messages** to `Everlore.Gateway.Contracts` and a **handler** on the gateway agent
+
+This pattern applies to: query execution, schema discovery, GraphQL explore, CRUD operations, and will extend to scheduled jobs, connector sync, metric computation, and AI embeddings. When planning any new feature, ask: "Does this read from or write to the tenant DB?" If yes, it needs gateway routing.
 
 ### Technology Stack
 | Layer | Technology |
