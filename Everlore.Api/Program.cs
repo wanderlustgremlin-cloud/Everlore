@@ -29,7 +29,27 @@ builder.Services.AddPostgresInfrastructure(catalogConnectionString);
 builder.AddRedisDistributedCache("cache");
 builder.Services.AddQueryEngine();
 
+// Gateway CRUD repository decorators (wrap Repository<T> for self-hosted routing)
+AddGatewayRepository<Everlore.Domain.AccountsPayable.Vendor>(builder.Services);
+AddGatewayRepository<Everlore.Domain.AccountsPayable.Bill>(builder.Services);
+AddGatewayRepository<Everlore.Domain.AccountsReceivable.Customer>(builder.Services);
+AddGatewayRepository<Everlore.Domain.AccountsReceivable.Invoice>(builder.Services);
+AddGatewayRepository<Everlore.Domain.Inventory.Product>(builder.Services);
+AddGatewayRepository<Everlore.Domain.Inventory.Warehouse>(builder.Services);
+AddGatewayRepository<Everlore.Domain.Sales.SalesOrder>(builder.Services);
+AddGatewayRepository<Everlore.Domain.Shipping.Carrier>(builder.Services);
+AddGatewayRepository<Everlore.Domain.Shipping.Shipment>(builder.Services);
+
 // Gateway routing decorators (wrap QueryEngine concrete types)
+builder.Services.AddScoped<IExploreService>(sp =>
+    new GatewayExploreService(
+        sp.GetRequiredService<Everlore.QueryEngine.GraphQL.LocalExploreService>(),
+        sp.GetRequiredService<ICatalogDbContext>(),
+        sp.GetRequiredService<IGatewayConnectionTracker>(),
+        sp.GetRequiredService<IGatewayResponseCorrelator>(),
+        sp.GetRequiredService<Microsoft.AspNetCore.SignalR.IHubContext<GatewayHub, Everlore.Gateway.Contracts.IGatewayHubClient>>(),
+        sp.GetRequiredService<ICurrentUser>(),
+        sp.GetRequiredService<ILogger<GatewayExploreService>>()));
 builder.Services.AddScoped<ISchemaService>(sp =>
     new GatewaySchemaService(
         sp.GetRequiredService<SchemaService>(),
@@ -146,6 +166,7 @@ builder.Services.AddControllers(options =>
 builder.Services.AddSingleton<IGatewayConnectionTracker, GatewayConnectionTracker>();
 builder.Services.AddSingleton<IGatewayResponseCorrelator, GatewayResponseCorrelator>();
 builder.Services.AddScoped<IGatewayApiKeyValidator, GatewayApiKeyValidator>();
+builder.Services.AddScoped<GatewayCrudService>();
 
 // SignalR
 var cacheConnectionString = builder.Configuration.GetConnectionString("cache");
@@ -219,3 +240,14 @@ app.MapHub<QueryHub>("/hubs/query");
 app.MapHub<GatewayHub>("/hubs/gateway");
 
 app.Run();
+
+static void AddGatewayRepository<T>(IServiceCollection services) where T : Everlore.Domain.Common.BaseEntity
+{
+    services.AddScoped<Everlore.Domain.Common.IRepository<T>>(sp =>
+        new GatewayRepository<T>(
+            sp.GetRequiredService<Everlore.Infrastructure.Persistence.Repository<T>>(),
+            sp.GetRequiredService<ICatalogDbContext>(),
+            sp.GetRequiredService<ICurrentUser>(),
+            sp.GetRequiredService<GatewayCrudService>(),
+            sp.GetRequiredService<ILogger<GatewayRepository<T>>>()));
+}

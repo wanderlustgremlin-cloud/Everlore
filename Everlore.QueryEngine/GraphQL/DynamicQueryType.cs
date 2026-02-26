@@ -39,6 +39,8 @@ public class DynamicQueryType : ObjectType
                     .FirstOrDefaultAsync(ds => ds.Id == dataSourceId && ds.TenantId == tenantId)
                     ?? throw new GraphQLException($"Data source '{dataSourceId}' not found.");
 
+                var exploreService = ctx.Service<IExploreService>();
+
                 var schemaObj = await schemaService.GetSchemaAsync(dataSourceId, false);
                 var schema = (DiscoveredSchema)schemaObj;
 
@@ -47,7 +49,8 @@ public class DynamicQueryType : ObjectType
                     && (schemaName is null || t.SchemaName.Equals(schemaName, StringComparison.OrdinalIgnoreCase)))
                     ?? throw new GraphQLException($"Table '{tableName}' not found in data source schema.");
 
-                return await resolver.ResolveAsync(ctx, dataSource, table);
+                var sql = ExploreSqlBuilder.BuildExploreSql(ctx, dataSource, table);
+                return await exploreService.ExploreAsync(dataSource.Id, (int)dataSource.Type, sql);
             });
 
         // Schema introspection: list tables for a data source

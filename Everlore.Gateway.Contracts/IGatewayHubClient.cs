@@ -9,5 +9,7 @@ public interface IGatewayHubClient
 {
     Task ExecuteQuery(GatewayExecuteQueryRequest request);
     Task DiscoverSchema(GatewayDiscoverSchemaRequest request);
+    Task Explore(GatewayExploreRequest request);
+    Task ExecuteCrud(GatewayCrudRequest request);
     Task Ping();
 }

@@ -8,8 +8,10 @@ namespace Everlore.Gateway;
 
 public class GatewaySignalRClient(
     IOptions<GatewaySettings> settings,
+    IServiceProvider serviceProvider,
     ExecuteQueryHandler executeQueryHandler,
     DiscoverSchemaHandler discoverSchemaHandler,
+    ExploreHandler exploreHandler,
     ILogger<GatewaySignalRClient> logger) : IAsyncDisposable
 {
     private readonly GatewaySettings _settings = settings.Value;
@@ -59,6 +61,29 @@ public class GatewaySignalRClient(
         {
             var response = await discoverSchemaHandler.HandleAsync(request, CancellationToken.None);
             await connection.InvokeAsync("SendSchemaResult", response);
+        });
+
+        connection.On<GatewayExploreRequest>("Explore", async request =>
+        {
+            var response = await exploreHandler.HandleAsync(request, CancellationToken.None);
+            await connection.InvokeAsync("SendExploreResult", response);
+        });
+
+        connection.On<GatewayCrudRequest>("ExecuteCrud", async request =>
+        {
+            using var scope = serviceProvider.CreateScope();
+            var handler = scope.ServiceProvider.GetService<CrudHandler>();
+
+            if (handler is null)
+            {
+                var errorResponse = new GatewayCrudResponse(request.RequestId, false, null, 501,
+                    "CRUD operations not configured on this gateway agent (TenantDbConnectionString missing).");
+                await connection.InvokeAsync("SendCrudResult", errorResponse);
+                return;
+            }
+
+            var response = await handler.HandleAsync(request, CancellationToken.None);
+            await connection.InvokeAsync("SendCrudResult", response);
         });
 
         connection.On("Ping", () =>

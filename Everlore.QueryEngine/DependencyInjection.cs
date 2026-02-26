@@ -44,6 +44,7 @@ public static class DependencyInjection
 
         // GraphQL
         services.AddScoped<DynamicQueryResolver>();
+        services.AddScoped<LocalExploreService>();
 
         // Resilience pipeline
         services.AddResiliencePipeline("external-db", builder =>
