@@ -6,6 +6,7 @@ public class GatewaySettings
     public string ApiKey { get; set; } = string.Empty;
     public int ReconnectDelaySeconds { get; set; } = 5;
     public int HeartbeatIntervalSeconds { get; set; } = 30;
+    public string? TenantDbConnectionString { get; set; }
     public Dictionary<string, DataSourceLocalConfig> DataSources { get; set; } = new();
 }
 

@@ -1,4 +1,3 @@
-using Everlore.Application.Common.Extensions;
 using Everlore.Application.Common.Models;
 using Everlore.Domain.Common;
 using Microsoft.AspNetCore.Mvc;
@@ -20,17 +19,8 @@ public abstract class CrudController<T>(IRepository<T> repository) : ApiControll
         CancellationToken ct)
     {
         var filters = ExtractFilters();
-        var query = repository.Query();
-
-        if (!string.IsNullOrWhiteSpace(after))
-        {
-            var cursorQuery = new CursorPaginationQuery(
-                pagination.PageSize, after, pagination.SortBy, pagination.SortDir);
-            var cursorResult = await query.ToCursorPagedResultAsync(cursorQuery, filters, ct);
-            return Ok(cursorResult);
-        }
-
-        var result = await query.ToPagedResultAsync(pagination, filters, ct);
+        var result = await repository.GetAllPagedAsync(
+            pagination.Page, pagination.PageSize, pagination.SortBy, pagination.SortDir, after, filters, ct);
         return Ok(result);
     }
 

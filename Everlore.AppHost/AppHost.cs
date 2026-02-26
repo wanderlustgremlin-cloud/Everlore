@@ -81,6 +81,7 @@ var api = builder.AddProject<Projects.Everlore_Api>("everlore-api")
 builder.AddProject<Projects.Everlore_Gateway>("gateway")
     .WithEnvironment("Gateway__ServerUrl", api.GetEndpoint("https"))
     .WithEnvironment("Gateway__ApiKey", "dev-gateway-key")
+    .WithReference(everloretenantdb)
     .WithEnvironment("SIGNOZ_OTLP_ENDPOINT", signozCollector.GetEndpoint("grpc"))
     .WaitFor(api)
     .WaitFor(signozCollector);

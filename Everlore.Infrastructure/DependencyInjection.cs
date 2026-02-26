@@ -29,15 +29,25 @@ public static class DependencyInjection
         services.AddSingleton<IEncryptionService, DataProtectionEncryptionService>();
 
         // Generic repositories (used by CrudController<T>)
-        services.AddScoped<IRepository<Vendor>, Repository<Vendor>>();
-        services.AddScoped<IRepository<Bill>, Repository<Bill>>();
-        services.AddScoped<IRepository<Customer>, Repository<Customer>>();
-        services.AddScoped<IRepository<Invoice>, Repository<Invoice>>();
-        services.AddScoped<IRepository<Product>, Repository<Product>>();
-        services.AddScoped<IRepository<Warehouse>, Repository<Warehouse>>();
-        services.AddScoped<IRepository<SalesOrder>, Repository<SalesOrder>>();
-        services.AddScoped<IRepository<Carrier>, Repository<Carrier>>();
-        services.AddScoped<IRepository<Shipment>, Repository<Shipment>>();
+        // Concrete Repository<T> registered for direct resolution and gateway decorator wrapping
+        services.AddScoped<Repository<Vendor>>();
+        services.AddScoped<Repository<Bill>>();
+        services.AddScoped<Repository<Customer>>();
+        services.AddScoped<Repository<Invoice>>();
+        services.AddScoped<Repository<Product>>();
+        services.AddScoped<Repository<Warehouse>>();
+        services.AddScoped<Repository<SalesOrder>>();
+        services.AddScoped<Repository<Carrier>>();
+        services.AddScoped<Repository<Shipment>>();
+        services.AddScoped<IRepository<Vendor>>(sp => sp.GetRequiredService<Repository<Vendor>>());
+        services.AddScoped<IRepository<Bill>>(sp => sp.GetRequiredService<Repository<Bill>>());
+        services.AddScoped<IRepository<Customer>>(sp => sp.GetRequiredService<Repository<Customer>>());
+        services.AddScoped<IRepository<Invoice>>(sp => sp.GetRequiredService<Repository<Invoice>>());
+        services.AddScoped<IRepository<Product>>(sp => sp.GetRequiredService<Repository<Product>>());
+        services.AddScoped<IRepository<Warehouse>>(sp => sp.GetRequiredService<Repository<Warehouse>>());
+        services.AddScoped<IRepository<SalesOrder>>(sp => sp.GetRequiredService<Repository<SalesOrder>>());
+        services.AddScoped<IRepository<Carrier>>(sp => sp.GetRequiredService<Repository<Carrier>>());
+        services.AddScoped<IRepository<Shipment>>(sp => sp.GetRequiredService<Repository<Shipment>>());
 
         return services;
     }

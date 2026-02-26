@@ -1,3 +1,5 @@
+using Everlore.Application.Common.Extensions;
+using Everlore.Application.Common.Models;
 using Everlore.Domain.Common;
 using Microsoft.EntityFrameworkCore;
 
@@ -36,4 +38,19 @@ public class Repository<T>(EverloreDbContext context) : IRepository<T> where T :
 
     public Task<int> SaveChangesAsync(CancellationToken ct = default)
         => Context.SaveChangesAsync(ct);
+
+    public async Task<object> GetAllPagedAsync(int page, int pageSize, string? sortBy, string sortDir,
+        string? after, IDictionary<string, string>? filters, CancellationToken ct = default)
+    {
+        var query = Query();
+
+        if (!string.IsNullOrWhiteSpace(after))
+        {
+            var cursorQuery = new CursorPaginationQuery(pageSize, after, sortBy, sortDir);
+            return await query.ToCursorPagedResultAsync(cursorQuery, filters, ct);
+        }
+
+        var pagination = new PaginationQuery(page, pageSize, sortBy, sortDir);
+        return await query.ToPagedResultAsync(pagination, filters, ct);
+    }
 }
