@@ -35,9 +35,18 @@ public class GatewayConnectionTracker : IGatewayConnectionTracker
         }
     }
 
-    public bool IsAgentOnline(Guid tenantId)
+    public bool IsAgentOnline(Guid tenantId) => IsAgentHealthy(tenantId);
+
+    public bool IsAgentHealthy(Guid tenantId)
     {
-        return _tenantToConnection.ContainsKey(tenantId);
+        if (!_tenantToConnection.TryGetValue(tenantId, out var connectionId))
+            return false;
+
+        if (!_connections.TryGetValue(connectionId, out var info))
+            return false;
+
+        // 3x the 30s heartbeat interval
+        return (DateTime.UtcNow - info.LastHeartbeatAt) < TimeSpan.FromSeconds(90);
     }
 
     public GatewayAgentInfo? GetAgentInfo(Guid tenantId)

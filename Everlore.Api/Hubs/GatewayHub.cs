@@ -53,6 +53,22 @@ public class GatewayHub(
         return Task.CompletedTask;
     }
 
+    public Task SendExploreResult(GatewayExploreResponse response)
+    {
+        logger.LogDebug("Received explore result for request {RequestId}, success={Success}",
+            response.RequestId, response.Success);
+        responseCorrelator.CompleteExploreResponse(response.RequestId, response);
+        return Task.CompletedTask;
+    }
+
+    public Task SendCrudResult(GatewayCrudResponse response)
+    {
+        logger.LogDebug("Received CRUD result for request {RequestId}, success={Success}",
+            response.RequestId, response.Success);
+        responseCorrelator.CompleteCrudResponse(response.RequestId, response);
+        return Task.CompletedTask;
+    }
+
     public Task SendError(GatewayErrorResponse error)
     {
         logger.LogWarning("Gateway agent sent error for request {RequestId}: {Error}",
@@ -63,6 +79,12 @@ public class GatewayHub(
 
     public Task Heartbeat(GatewayHeartbeat heartbeat)
     {
+        logger.LogTrace("Heartbeat from connection {ConnectionId}: TenantId={TenantId}, AgentVersion={AgentVersion}, DataSourceCount={DataSourceCount}",
+            Context.ConnectionId,
+            Context.Items.TryGetValue(TenantIdKey, out var tid) ? tid : "unknown",
+            heartbeat.AgentVersion,
+            heartbeat.AvailableDataSourceIds.Count);
+
         connectionTracker.UpdateHeartbeat(
             Context.ConnectionId, heartbeat.AgentVersion, heartbeat.AvailableDataSourceIds);
         return Task.CompletedTask;
@@ -72,8 +94,13 @@ public class GatewayHub(
     {
         if (Context.Items.TryGetValue(TenantIdKey, out var tenantIdObj) && tenantIdObj is Guid tenantId)
         {
-            logger.LogInformation("Gateway agent disconnected for tenant {TenantId} (connection {ConnectionId})",
-                tenantId, Context.ConnectionId);
+            var agentInfo = connectionTracker.GetAgentInfo(tenantId);
+            var duration = agentInfo is not null ? DateTime.UtcNow - agentInfo.ConnectedAt : TimeSpan.Zero;
+
+            logger.LogInformation(
+                "Gateway agent disconnected for tenant {TenantId} (connection {ConnectionId}, duration={DurationMinutes:F1}min){ExceptionMessage}",
+                tenantId, Context.ConnectionId, duration.TotalMinutes,
+                exception is not null ? $": {exception.Message}" : "");
 
             connectionTracker.UnregisterAgent(Context.ConnectionId);
             responseCorrelator.CancelPendingRequests(tenantId);

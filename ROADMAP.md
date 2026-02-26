@@ -132,8 +132,13 @@ The core product. Users connect to external databases, browse schemas, build que
 - [x] Gateway status endpoint: `GET /api/tenants/{id}/gateway-status` (online/offline, version, health)
 - [x] Aspire integration: gateway agent as Aspire project with dev seeded self-hosted tenant
 - [x] Heartbeat monitoring with health status based on heartbeat freshness
-- [ ] Full GraphQL gateway routing (follow-up: currently REST query API only for self-hosted)
-- [ ] Tenant DB CRUD proxying for on-prem business data storage (follow-up)
+- [x] Heartbeat freshness checking (90s threshold) in connection tracker; `IsAgentHealthy` method
+- [x] Structured logging in `GatewayResponseCorrelator` (waiter registration, completion, timeout, orphaned responses, disconnect cancellation)
+- [x] Hub logging improvements: trace-level heartbeat logging, connection duration on disconnect
+- [x] GraphQL explore gateway routing: `IExploreService` abstraction, `ExploreSqlBuilder`, `LocalExploreService`, `GatewayExploreService` decorator, agent `ExploreHandler`
+- [x] Tenant DB CRUD proxying: `GatewayRepository<T>` decorator, `GatewayCrudService`, agent `CrudHandler`, `GetAllPagedAsync` on `IRepository<T>`
+- [x] `Everlore.Gateway.Contracts` extended: `GatewayExploreRequest/Response`, `GatewayCrudRequest/Response`, `GatewayCrudPaginationParams`
+- [x] Gateway agent: optional `EverloreDbContext` with `TenantDbConnectionString` config for CRUD operations
 
 ### 2.9 Export — not started
 - CSV and Excel export from query results

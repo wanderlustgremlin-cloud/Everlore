@@ -14,6 +14,7 @@ public interface IGatewayConnectionTracker
     void UnregisterAgent(string connectionId);
     void UpdateHeartbeat(string connectionId, string agentVersion, IReadOnlyList<Guid> dataSourceIds);
     bool IsAgentOnline(Guid tenantId);
+    bool IsAgentHealthy(Guid tenantId);
     GatewayAgentInfo? GetAgentInfo(Guid tenantId);
     string? GetConnectionId(Guid tenantId);
 }

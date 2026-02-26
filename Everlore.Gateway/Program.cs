@@ -8,6 +8,7 @@ using Everlore.QueryEngine.Connections;
 using Everlore.QueryEngine.Execution;
 using Everlore.QueryEngine.Schema;
 using Everlore.QueryEngine.Translation;
+using Microsoft.EntityFrameworkCore;
 using Polly;
 using Polly.Registry;
 using Polly.Retry;
@@ -58,6 +59,20 @@ builder.Services.AddSingleton(sp =>
 // Handlers
 builder.Services.AddSingleton<ExecuteQueryHandler>();
 builder.Services.AddSingleton<DiscoverSchemaHandler>();
+builder.Services.AddSingleton<ExploreHandler>();
+
+// Tenant DB CRUD support (optional — only when TenantDbConnectionString is configured)
+var tenantDbConnectionString = builder.Configuration["Gateway:TenantDbConnectionString"]
+    ?? builder.Configuration.GetConnectionString("everloretenantdb");
+if (!string.IsNullOrWhiteSpace(tenantDbConnectionString))
+{
+    builder.Services.AddDbContext<Everlore.Infrastructure.Persistence.EverloreDbContext>(options =>
+    {
+        options.UseNpgsql(tenantDbConnectionString, o =>
+            o.MigrationsAssembly("Everlore.Infrastructure.Postgres"));
+    });
+    builder.Services.AddScoped<CrudHandler>();
+}
 
 // SignalR client + worker
 builder.Services.AddSingleton<GatewaySignalRClient>();

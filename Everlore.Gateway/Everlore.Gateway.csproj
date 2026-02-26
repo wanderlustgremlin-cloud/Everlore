@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Everlore.Gateway.Contracts\Everlore.Gateway.Contracts.csproj" />
+    <ProjectReference Include="..\Everlore.Infrastructure.Postgres\Everlore.Infrastructure.Postgres.csproj" />
     <ProjectReference Include="..\Everlore.QueryEngine\Everlore.QueryEngine.csproj" />
     <ProjectReference Include="..\Everlore.ServiceDefaults\Everlore.ServiceDefaults.csproj" />
   </ItemGroup>
