@@ -4,7 +4,9 @@ A multi-tenant Business Intelligence platform that lets users connect to any dat
 
 ## What Is Everlore
 
-Everlore is a self-hostable BI tool designed for companies that want Power BI-style capabilities without vendor lock-in. Users connect their own databases, APIs, or file uploads, then build reports visually or through natural language. Each tenant brings their own AI provider — OpenAI, Anthropic, self-hosted models — and Everlore learns their data over time to answer questions intelligently.
+Everlore is a SaaS BI platform designed for companies that want Power BI-style capabilities without vendor lock-in. Users connect their own databases, APIs, or file uploads, then build reports visually or through natural language. Each tenant brings their own AI provider — OpenAI, Anthropic, or locally-hosted models — and Everlore learns their data over time to answer questions intelligently.
+
+Tenants choose where their data lives: in Everlore's cloud infrastructure or on their own network. For on-premise databases, a lightweight gateway agent deployed on the tenant's network connects outbound to the Everlore API — no inbound firewall rules required.
 
 ### Key Features (Planned)
 
@@ -12,8 +14,9 @@ Everlore is a self-hostable BI tool designed for companies that want Power BI-st
 - **Ad-hoc report builder** — Drag-and-drop interface for building queries visually. Pick dimensions, measures, filters, and chart types with live preview.
 - **Interactive dashboards** — Grid-based layouts with resizable widgets, cross-filtering, and click-to-drill.
 - **AI-powered queries** — Natural language to report: "Show me revenue by customer for Q4" becomes a chart. Data-aware chat that understands your schema and business context.
-- **Bring your own AI** — Tenant-configurable AI provider. API key services (OpenAI, Anthropic) or self-hosted models (Ollama, vLLM).
+- **Bring your own AI** — Tenant-configurable AI provider. API key services (OpenAI, Anthropic) or locally-hosted models (Ollama, vLLM).
 - **Multi-tenant** — Isolated data per tenant with shared infrastructure. Users authenticate once, then select which tenant to work in.
+- **Hybrid hosting** — Tenant data can live in Everlore's cloud or on the tenant's own network. On-premise databases are reached through a lightweight gateway agent that connects outbound — no VPN or inbound firewall rules needed.
 - **Connector ecosystem** — Managed data ingestion from external systems (QuickBooks, Xero) with scheduled sync and observability.
 
 ## Tech Stack
@@ -27,6 +30,7 @@ Everlore is a self-hostable BI tool designed for companies that want Power BI-st
 | Database | PostgreSQL (catalog + per-tenant) |
 | Frontend | React, Next.js, TypeScript |
 | AI | Provider-agnostic (OpenAI, Anthropic, Ollama, vLLM) |
+| On-Premise Gateway | .NET Worker SDK, outbound SignalR |
 | Auth | ASP.NET Identity + JWT |
 
 ## Project Structure
@@ -40,7 +44,7 @@ Everlore.slnx
 ├── Everlore.QueryEngine               # External DB connections, SQL translation, schema discovery, GraphQL
 ├── Everlore.Api                       # ASP.NET Core controllers, filters, middleware, SignalR
 ├── Everlore.Gateway.Contracts         # Shared message types for gateway agent communication
-├── Everlore.Gateway                   # Self-hosted gateway agent (outbound SignalR to API)
+├── Everlore.Gateway                   # On-premise gateway agent (outbound SignalR to API)
 ├── Everlore.Connector.Seed            # Deterministic test data generator
 ├── Everlore.SyncService               # Background data sync worker
 ├── Everlore.MigrationService          # EF migrations + dev data seeding
@@ -132,17 +136,17 @@ Phase 1 (Platform Hardening) is complete. Phase 2 (Reporting API) is in progress
 - Polly resilience (retry + circuit breaker) on external DB connections
 - Serilog structured logging with OTLP export to Aspire Dashboard and SigNoz
 - SigNoz observability stack (ClickHouse, OTel Collector, Query Service, Frontend) as Aspire containers
-- **Gateway agent system** for querying customer databases on remote networks via outbound SignalR
+- **Gateway agent system** for querying on-premise tenant databases via outbound SignalR
 - **Gateway hardening** — heartbeat freshness checking, structured correlator/hub logging
-- **GraphQL gateway routing** — explore queries for self-hosted tenants route through the gateway agent
-- **Tenant DB CRUD proxying** — CRUD operations for self-hosted tenants route through the gateway agent
+- **GraphQL gateway routing** — explore queries for on-premise tenants route through the gateway agent
+- **Tenant DB CRUD proxying** — CRUD operations for on-premise tenants route through the gateway agent
 
 See [ROADMAP.md](ROADMAP.md) for the full development plan with detailed progress.
 
 ## Roadmap
 
 1. **Platform Hardening** — Pagination, filtering, cursor pagination, correlation IDs, audit trail, tenant provisioning, tenant settings *(complete)*
-2. **Reporting API & Ad-Hoc Query Engine** — Data sources, schema discovery, query model, SQL translation, GraphQL, SignalR, gateway agent, CRUD proxying *(complete except export)*
+2. **Reporting API & Ad-Hoc Query Engine** — Data sources, schema discovery, query model, SQL translation, GraphQL, SignalR, on-premise gateway agent, CRUD proxying *(complete except export)*
 3. **Frontend & Dashboard Builder** — React/Next.js report builder, dashboards, interactive filtering
 4. **AI Integration** — Provider abstraction, natural language to query, data-aware chat
 5. **Data Pipeline & Connectors** — Connector SDK, QuickBooks/Xero, scheduled sync
